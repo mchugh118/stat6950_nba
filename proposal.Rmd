@@ -40,6 +40,5 @@ write.csv(data,"data/PlayerData.csv", row.names = TRUE)
 ## Exploratory Data Analysis
 
 ```{r eda}
-usa <- read.delim("data/usa.txt")
 ```
 
