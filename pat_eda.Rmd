@@ -1,0 +1,17 @@
+---
+title: "pat_eda"
+author: "Patrick McHugh"
+date: "3/30/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+```
+
+```{r single_var_models}
+player_data <- read.csv("data/PlayerData.csv", row.names = 1)
+hist()
+```
