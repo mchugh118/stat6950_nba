@@ -56,6 +56,12 @@ data$Player <- str_replace_all(data$Player, '[^[:alnum:][:space:]]', '')
 data <- merge(data, player_salaries, by = "Player")
 data <- data[,c(1,3,4,6:30,34:38,42)]
 data2 <- merge(data,advanced_stats[,c("Player", "PTS", "TS.")], by="Player")
+#write.csv(data,"data/PlayerData.csv", row.names = TRUE)
+
+for(i in 1:nrow(data2)){
+  data2$Ht[i] <- as.numeric(unlist(strsplit(as.character(data2$Ht[i]),"-"))[1])*12 + as.numeric(unlist(strsplit(as.character(data2$Ht[i]),"-"))[2])
+}
+
 
 # Make categories based on birthplace: USA/International
 usa <- read.delim("data/usa.txt")[,1]
@@ -63,6 +69,7 @@ data2$International = ifelse(data2$Place_of_Birth %in% usa, "No", "Yes")
 
 
 write.csv(data2,"data/PlayerData.csv", row.names = TRUE)
+
 
 attach(data)
 summary(lm(BPM ~ OBPM + DBPM))  # R^2 > .999
