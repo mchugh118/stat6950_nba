@@ -21,7 +21,11 @@ players_cv <- playerscv[playerscv$From<= 2015 & playerscv$To>=2016,]
 data <- merge(player_stats, players_cv, by = "Player")
 data <- merge(data, player_salaries, by = "Player")
 data <- data[,c(1,3,4,6:30,34:38,42)]
-write.csv(data,"data/PlayerData.csv", row.names = TRUE)
+#write.csv(data,"data/PlayerData.csv", row.names = TRUE)
+
+for(i in 1:nrow(data)){
+  data$Ht[i] <- as.numeric(unlist(strsplit(as.character(data$Ht[i]),"-"))[1])*12 + as.numeric(unlist(strsplit(as.character(data$Ht[i]),"-"))[2])
+}
 
 attach(data)
 summary(lm(BPM ~ OBPM + DBPM))  # R^2 > .999
