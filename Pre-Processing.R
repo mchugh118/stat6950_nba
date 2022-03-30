@@ -30,3 +30,8 @@ data$International = ifelse(data$Place_of_Birth %in% usa, "No", "Yes")
 
 
 write.csv(data,"data/PlayerData.csv", row.names = TRUE)
+
+attach(data)
+summary(lm(BPM ~ OBPM + DBPM))  # R^2 > .999
+summary(lm(WS ~ OWS + DWS))  # R^2 > .999
+summary(lm(TRB. ~ ORB. + DRB.))  # R^2 > .998
