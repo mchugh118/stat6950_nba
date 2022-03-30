@@ -1,8 +1,8 @@
 ---
 title: "Stat 6950 Project Proposal"
-author: "Patrick McHugh and Nick Mandanaro"
-date: '2022-03-30'
-output: html_document
+author: "Patrick McHugh and Nick Mandarano"
+date: '2022-03-31'
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
