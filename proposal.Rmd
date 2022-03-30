@@ -30,4 +30,7 @@ data <- merge(player_stats, players_cv, by = "Player")
 
 ## Exploratory Data Analysis
 
-## Proposal
+```{r eda}
+usa <- read.delim("data/usa.txt")
+```
+
