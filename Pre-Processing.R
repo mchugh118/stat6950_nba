@@ -22,3 +22,8 @@ data <- merge(player_stats, players_cv, by = "Player")
 data <- merge(data, player_salaries, by = "Player")
 data <- data[,c(1,3,4,6:30,34:38,42)]
 write.csv(data,"data/PlayerData.csv", row.names = TRUE)
+
+attach(data)
+summary(lm(BPM ~ OBPM + DBPM))  # R^2 > .999
+summary(lm(WS ~ OWS + DWS))  # R^2 > .999
+summary(lm(TRB. ~ ORB. + DRB.))  # R^2 > .998
