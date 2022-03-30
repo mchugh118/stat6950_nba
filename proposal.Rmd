@@ -7,6 +7,25 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+coach <- read.csv("data/coach.csv")
+cpi <- read.csv("data/cpi.csv")
+division <- read.csv("data/division.csv")
+playerscv <- read.csv("data/players cv.csv")
+playerssalary <- read.csv("data/players salary.csv")
+playersstat <- read.csv("data/players stat.csv")
+team <- read.csv("data/team.csv")
+```
+
+```{r}
+# Gather data only from the 2014-15 season
+player_stats <- playersstat[playersstat$Season=="2015-16",]
+player_salaries <- playerssalary[playerssalary$SEASON=="2015-2016",]
+players_cv <- playerscv[playerscv$From<= 2015 & playerscv$To>=2016,]
+team_stats <- team[team$Season=="2015-16",]
+
+# Merge data to individual players
+data <- merge(player_stats, players_cv, by = "Player")
 ```
 
 ## Exploratory Data Analysis
