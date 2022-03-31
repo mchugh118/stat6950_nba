@@ -40,12 +40,15 @@ for (column in numeric_cols){
 
 When looking at the covariates, many appear to be normally distributed and satisfy the assumptions used by the linear model. Some have a right skew, including many counting stats such as rebounds, blocks, and points. Games started is fairly uniformly distributed from 10-70, with a higher density from 0-10 and 70-82. Games played has a left skew. We will experiment with log, inverse, square root, and squaring transformations. We would prefer approximately normal distributions of the covariates, to help obtain normally distributed residuals, and to avoid high leverage cases affecting the mean function.
 
-We did make some transformations for categorical variables as well. NBA players are often discussed as either American or International, so we created a new variable labeling each player as one of these based on the place of birth. Additionally, we created another categorical predictor for "major college," "non-major college," or "no college" to see whether this has any indication; thi
+We did make some transformations for categorical variables as well. NBA players are often discussed as either American or International, so we created a new variable labeling each player as one of these based on the place of birth. Additionally, we created the "Power Six" variable to see whether this has any indication; this may not be independent of American/International, and other predictors.
 
 
 ```{r eda3}
 for (column in numeric_cols){
   plot(player_data[,column], log(player_data$SALARY), xlab=column, ylab="log salary", main=column)
+}
+for (column in numeric_cols){
+  plot(player_data[,column], player_data$SALARY, xlab=column, ylab="raw salary", main=column)
 }
 ```
 We also look at the relationships between salary and each of the predictors individually. There appears to be a relationship between salary and many of the covariates individually, including simple stats such as minutes and points, as well as advanced stats like PER (Player Efficiency Rating), and Box +/-. There are many covariates that have a marginal relationship with salary. For some of them such as minutes, a marginal linear relationship seems appropriate; for others, such as VORP, a marginal linear relationship may not be appropriate. As discussed earlier, trying to transform variables and account for the multicollinearity in covariates will be some of the challenges of this project. 
@@ -62,4 +65,4 @@ After plotting boxplots of salary by each level of the categorical variables, sa
 
 This dataset is pretty broad, which leaves us open to many possibilities for modeling approaches. As mentioned before, it seems likely we will transform the y variable in some way, possibly with a Box-Cox approach. We are certainly dealing with some multicollinearity in covariates and will need to use tools such as AVPs and VIFs to account for this. Also, interaction effects seem plausible; for example, would a change in the number of rebounds per game be associated with the same change in salary for both guards and centers? We do not initially expect any time series or any weighted linear regression.
 
-One key figure for us is the matrix measuring correlations between the covariates. In many datasets, one would expect some degree of correlation between predictors. In this NBA dataset, however, many of the advanced metrics available are functions of some of the simpler statistics. We will need to use this knowledge to avoid putting the
+One key figure for us is the matrix measuring correlations between the covariates, seen previously. In many datasets, one would expect some degree of correlation between predictors. In this NBA dataset, however, many of the advanced metrics available are functions of some of the simpler statistics. We will need to use this knowledge to account for multicollinearity and avoid unintentionally putting extra weight on some of the covariates.
