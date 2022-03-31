@@ -82,3 +82,5 @@ attach(data)
 summary(lm(BPM ~ OBPM + DBPM))  # R^2 > .999
 summary(lm(WS ~ OWS + DWS))  # R^2 > .999
 summary(lm(TRB. ~ ORB. + DRB.))  # R^2 > .998
+
+data <- data[,-c(12,22,26)]

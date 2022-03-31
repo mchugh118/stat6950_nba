@@ -1,0 +1,57 @@
+---
+title: "Nicks EDA"
+author: "Nicholas Mandarano and Patrick McHugh"
+date: "3/30/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exploratory Data Analysis
+
+Our data comes from four different datasets. We used three of Riguang Wen's [datasets](https://figshare.com/articles/dataset/NBA_data/5414170) from figshare.com -- \texttt{players cv}, \texttt{players salary}, and \texttt{players stat}. We also used a [dataset](https://zenodo.org/record/3750329#.YkT6YW7MJAe) called \texttt{NBA RS 2020-1950 Stats} uploaded to zenodo.org by Pablo Gomez and Sandra Giral. From these datasets, we considered the following variables.
+
+| Variable      | Description               | Type          | Source                  |
+|:--------------|:-------------------------:|:-------------:|:-----------------------:|
+| Player        | Name of player            | Character     | \texttt{players stat}   |
+| Age           | Age of player             | Numeric       | \texttt{players stat}   |
+| G             | Games played              | Numeric       | \texttt{players stat}   |
+| GS            | Games started             | Numeric       | \texttt{players stat}   |
+| MP            | Minutes played            | Numeric       | \texttt{players stat}   |
+| PER           | Player efficiency rating  | Numeric       | \texttt{players stat}   |
+| PTS           | Points                    | Numeric       | \texttt{NBA RS 2020-1950 Stats} |
+| X3PAr         | 3PA/FGA                   | Numeric       | \texttt{players stat}   |
+| FTr           | FTA/FGA                   | Numeric       | \texttt{players stat}   |
+| TS            | True shooting percentage  | Numeric       | \texttt{NBA RS 2020-1950 Stats} |
+| ORB           | Offensive rebounds        | Numeric       | \texttt{players stat}   |
+| DRB           | Defensive rebounds        | Numeric       | \texttt{players stat}   |
+| TRB           | Total rebounds            | Numeric       | \texttt{players stat}   |
+| AST           | Assists                   | Numeric       | \texttt{players stat}   |
+| STL           | Steals                    | Numeric       | \texttt{players stat}   |
+| BLK           | Blocks                    | Numeric       | \texttt{players stat}   |
+| TOV           | Turnovers                 | Numeric       | \texttt{players stat}   |
+| USG           | Usage percentage          | Numeric       | \texttt{players stat}   |
+| ORtg          | Offensive rating          | Numeric       | \texttt{players stat}   |
+| DRtg          | Defensive rating          | Numeric       | \texttt{players stat}   |
+| OWS           | Offensive win shares      | Numeric       | \texttt{players stat}   |
+| DWS           | Defensive win shares      | Numeric       | \texttt{players stat}   |
+| WS            | Win shares                | Numeric       | \texttt{players stat}   |
+| WS.48         | Win shares per 48 minutes | Numeric       | \texttt{players stat}   |
+| OBPM          | Offensive box +/-         | Numeric       | \texttt{players stat}   |
+| DBPM          | Defensive box +/-         | Numeric       | \texttt{players stat}   |
+| BPM           | Box +/-                   | Numeric       | \texttt{players stat}   |
+| VORP          | Value over replacement player | Numeric   | \texttt{players stat}   |
+| Pos           | Position                  | Factor        | \texttt{players salary} |
+| Ht            | Height in inches          | Numeric       | \texttt{players salary} |
+| Wt            | Weight in pounds          | Numeric       | \texttt{players salary} |
+| PwrSix        | Power Six College?        | Indicator     | \texttt{players cv}     |
+| International | International Player?     | Indicator     | \texttt{players cv}     |
+| Salary        | Salary in dollars         | Numeric       | \texttt{players salary}  |
+
+Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \text{ORB} and \text{DRB} in our model. Some other multicollinearity issues will likely arise given the correlation matrix of the numerica variables under consideration.
+
+```{r hide=TRUE}
+corrplot(cor(data[sapply(data, is.numeric)]))
+```
