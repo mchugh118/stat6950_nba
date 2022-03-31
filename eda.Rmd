@@ -67,7 +67,7 @@ Our data comes from four different datasets. We used three of Riguang Wen's [dat
 Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \texttt{ORB} and \texttt{DRB} in our model. Some other multicollinearity issues will likely arise given the correlation matrix of the numerical variables under consideration below. Some examples of potential issues are the correlation between \texttt{WS} and \texttt{PER} as well as that of \texttt{MP} and \texttt{G}.
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, out.height="30%", out.height="30%", fig.align="center"}
 corrplot(cor(data[sapply(data, is.numeric)]))
 ```
 
@@ -75,7 +75,7 @@ This matrix is an important figure for us and represents a key concept. In many 
 
 Also in the numeric variables are signs of non-normality. Of the 27 numeric variables considered after the exclusion of \texttt{BPM}, \texttt{WS} and \texttt{TRB}, 11 had medians that had 10% or more in difference of the mean, possibly indicating asymmetry. Of these, only the boxplots of \texttt{G} and \texttt{GS} did not signify outliers, though histograms of the data did show skewness. Histograms of the others (\texttt{FTr, ORB, AST, BLK, OWS, DWS, VORP, Salary}, and \texttt{PTS}) were all right-skewed. \texttt{GS} is fairly uniformly distributed from 10-82, with a higher density from 0-10. We would prefer approximately normal distributions of the covariates, to help obtain normally distributed residuals, and to avoid high leverage cases affecting the mean function. We will experiment with log, inverse, square root, and squaring transformations. Many covariates do appear to be normally distributed and useful without transformations. 
 
-```{r eda2, echo=FALSE}
+```{r eda2, echo=FALSE, out.height="30%", fig.align="center"}
 g_hist = data %>% ggplot(aes(x = G)) + geom_histogram() + ggtitle("Games")
 gs_hist = data %>% ggplot(aes(x = GS)) + geom_histogram() + ggtitle("Games Started")
 pts_hist = data %>% ggplot(aes(x = PTS)) + geom_histogram() + ggtitle("Points")
@@ -94,7 +94,7 @@ x = NULL
 
 We can see that the distribution of salary is heavily skewed to the right. We expect to transform this variable to perform linear regression. After attempting several transformations such as an inverse and square root, a log transformation seems most appropriate, althought not perfect. We will consider other transformations and the Box-Cox method during the analysis:
 
-```{r eda1, echo=FALSE}
+```{r eda1, echo=FALSE, out.height="30%", fig.align="center"}
 data <- read.csv("data/PlayerData.csv", row.names = 1)
 
 y_hist = data %>% ggplot(aes(x = SALARY)) + geom_histogram() + ggtitle("Salary")
@@ -113,7 +113,7 @@ We also look at the relationships between salary and each of the predictors indi
 
 Some covariates, such as \texttt{ORB}, do not appear to have a strong marginal relationship with salary; we will investigate whether these still may have a relationship with salary through interactions with other variables.
 
-```{r eda4, echo=FALSE}
+```{r eda4, echo=FALSE, fig.align="center", out.height="50%"}
 orb_plot = data %>% ggplot(aes(x = ORB.)) + geom_point(aes(y=log(SALARY))) + ggtitle("Offensive Rebounds vs log(Salary)")
 mp_plot = data %>% ggplot(aes(x = MP)) + geom_point(aes(y=log(SALARY))) + ggtitle("Minutes vs log(Salary)")
 obpm_plot = data %>% ggplot(aes(x = OBPM)) + geom_point(aes(y=log(SALARY))) + ggtitle("OBPM vs log(Salary)")
@@ -124,7 +124,7 @@ grid.arrange(orb_plot, mp_plot, obpm_plot, tov_plot, nrow = 2, ncol=2)
 
 After plotting boxplots of salary by each level of the categorical variables, salary does seem to vary across different levels of the variables. We plan to evaluate whether these relationships remain useful in the full model. Position and international each have a small number of levels; the team factor has 30 levels. We will evaluate whether this can be useful with all 30 levels, if there are ways to reduce this by grouping teams by things such as conference affiliation or market size, or if it is not useful at all in a model with less than 400 observations.
 
-```{r eda5, echo=FALSE}
+```{r eda5, echo=FALSE, out.height="20%", fig.align="center"}
 intl_box <- ggplot(data, aes(x=International, y=log(SALARY))) + geom_boxplot()
 team_box <- ggplot(data, aes(x=Tm, y=log(SALARY))) + geom_boxplot() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
 grid.arrange(intl_box, team_box, nrow = 1)
