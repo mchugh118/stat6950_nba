@@ -31,7 +31,10 @@ for (i in 1:length(euro_names)){
 }
 
 # Gather data only from the 2014-15 season
+playersstat[!playersstat$Player == "Sam Dekker",]
 player_stats <- playersstat[playersstat$Season=="2015-16",]
+player_stats <- player_stats[!player_stats$Player == "Sam Dekker",]
+
 player_salaries <- playerssalary[playerssalary$SEASON=="2015-2016",]
 player_salaries$NAME <- as.character(player_salaries$NAME)
 for(i in 1:nrow(player_salaries)){
@@ -55,27 +58,19 @@ data$Player <- str_replace_all(data$Player, '[^[:alnum:][:space:]]', '')
 
 data <- merge(data, player_salaries, by = "Player")
 data <- data[,c(1,3,4,6:30,34:38,42)]
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 for(i in 1:nrow(data)){
   data$Height[i] <- as.numeric(unlist(strsplit(as.character(data$Ht[i]),"-"))[1])*12 + as.numeric(unlist(strsplit(as.character(data$Ht[i]),"-"))[2])
-=======
-data2 <- merge(data,advanced_stats[,c("Player", "PTS", "TS.")], by="Player")
-#write.csv(data,"data/PlayerData.csv", row.names = TRUE)
-
-for(i in 1:nrow(data2)){
-  data2$Ht[i] <- as.numeric(unlist(strsplit(as.character(data2$Ht[i]),"-"))[1])*12 + as.numeric(unlist(strsplit(as.character(data2$Ht[i]),"-"))[2])
->>>>>>> 0a6f431d7fa956a2aca07af6a9359169ddab1c62
 }
+data <- merge(data,advanced_stats[,c("Player", "PTS", "TS.")], by="Player")
 
 
 # Make categories based on birthplace: USA/International
 usa <- read.delim("data/usa.txt")[,1]
-data2$International = ifelse(data2$Place_of_Birth %in% usa, "No", "Yes")
+data$International = ifelse(data$Place_of_Birth %in% usa, "No", "Yes")
 
 
-write.csv(data2,"data/PlayerData.csv", row.names = TRUE)
+write.csv(data,"data/PlayerData.csv", row.names = TRUE)
 
 
 attach(data)
