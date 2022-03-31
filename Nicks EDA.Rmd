@@ -2,7 +2,10 @@
 title: "Nicks EDA"
 author: "Nicholas Mandarano and Patrick McHugh"
 date: "3/30/2022"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
