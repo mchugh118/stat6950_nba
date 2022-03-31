@@ -7,6 +7,15 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(corrplot) #for visualization of correlation
+library(lattice) #for visualization
+library(ggplot2) #for visualization
+library(patchwork) #for gridding ggplots
+library(caTools) #for splittind data into testing and training data
+library(dplyr) #manipulating dataframe
+library(plotly) #converting ggplot to plotly
+
+data <- read.csv("data/PlayerData.csv")[,-1]
 ```
 
 ## Exploratory Data Analysis
@@ -50,8 +59,10 @@ Our data comes from four different datasets. We used three of Riguang Wen's [dat
 | International | International Player?     | Indicator     | \texttt{players cv}     |
 | Salary        | Salary in dollars         | Numeric       | \texttt{players salary}  |
 
-Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \text{ORB} and \text{DRB} in our model. Some other multicollinearity issues will likely arise given the correlation matrix of the numerica variables under consideration.
+Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \text{ORB} and \text{DRB} in our model. Some other multicollinearity issues will likely arise given the correlation matrix of the numerical variables under consideration below. Some examples of potential issues are the correlation between \texttt{WS} and \texttt{PER} as well as that of \texttt{MP} and \texttt{G}.
 
-```{r hide=TRUE}
+```{r echo=FALSE}
 corrplot(cor(data[sapply(data, is.numeric)]))
 ```
+
+Also in the numeric variables are signs of non-normality. Of the 27 numeric variables considered after the exclusion of \texttt{BPM}, \texttt{WS} and \texttt{TRB}, 11 had medians that had 10% or more in difference of the mean, possibly indicating asymmetry. Of these, only the boxplots of \texttt{G} and \texttt{GS} did not signify outliers, though histograms of the data did show skewness. Histograms of the others (\texttt{FTr, ORB, AST, BLK, OWS, DWS, VORP, Salary}, and \texttt{PTS}) were all right-skewed.

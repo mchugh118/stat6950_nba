@@ -11,7 +11,7 @@ attach(data)
 str(data)
 summary <- summary(data)
 num.medians <- apply(data[sapply(data, is.numeric)],2,median, na.rm = TRUE)
-num.means <- colMeans(data[sapply(data, is.numeric)]) 
+num.means <- colMeans(data[sapply(data, is.numeric)], na.rm = TRUE) 
 skews <- abs(num.means-num.medians)/abs(num.means)
 skews>0.1
 
@@ -41,8 +41,10 @@ p12 <- ggplot(data, aes(x=VORP)) +
   geom_boxplot(outlier.colour="red", outlier.shape=1, outlier.size=4)
 p13 <- ggplot(data, aes(x=SALARY)) + 
   geom_boxplot(outlier.colour="red", outlier.shape=1, outlier.size=4)
+p14 <- ggplot(data, aes(x=PTS)) + 
+  geom_boxplot(outlier.colour="red", outlier.shape=1, outlier.size=4)
 
-boxplots13 <- p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + plot_layout(ncol = 4)
+boxplots14 <- p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + p14 + plot_layout(ncol = 4)
 
 p1 <- ggplot(data, aes(x=G)) + 
   geom_histogram(color="blue", fill="blue", binwidth=1)
@@ -69,9 +71,11 @@ p11 <- ggplot(data, aes(x=BPM)) +
 p12 <- ggplot(data, aes(x=VORP)) + 
   geom_histogram(color="blue", fill="blue", binwidth=0.25)
 p13 <- ggplot(data, aes(x=SALARY)) + 
-  geom_histogram(color="blue", fill="blue", binwidth=250000)
+  geom_histogram(color="black", fill="blue", binwidth=250000)
+p14 <- ggplot(data, aes(x=PTS)) + 
+  geom_histogram(color="black", fill="blue", binwidth=50)
 
-histograms13 <- p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + plot_layout(ncol = 4)
+histograms14 <- p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + p14 + plot_layout(ncol = 4)
 
 corrplot(cor(data[sapply(data, is.numeric)]))
 
