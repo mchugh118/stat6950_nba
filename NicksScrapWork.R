@@ -45,31 +45,31 @@ p13 <- ggplot(data, aes(x=SALARY)) +
 boxplots13 <- p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + plot_layout(ncol = 4)
 
 p1 <- ggplot(data, aes(x=G)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=1)
 p2 <- ggplot(data, aes(x=GS)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=1)
 p3 <- ggplot(data, aes(x=FTr)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.02)
 p4 <- ggplot(data, aes(x=ORB.)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.25)
 p5 <- ggplot(data, aes(x=TRB.)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.5)
 p6 <- ggplot(data, aes(x=AST.)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=1)
 p7 <- ggplot(data, aes(x=BLK.)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.2)
 p8 <- ggplot(data, aes(x=OWS)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.25)
 p9 <- ggplot(data, aes(x=DWS)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.1)
 p10 <- ggplot(data, aes(x=WS)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.5)
 p11 <- ggplot(data, aes(x=BPM)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.5)
 p12 <- ggplot(data, aes(x=VORP)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=0.25)
 p13 <- ggplot(data, aes(x=SALARY)) + 
-  geom_histogram(color="black", fill="white")
+  geom_histogram(color="blue", fill="blue", binwidth=250000)
 
 histograms13 <- p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + p12 + p13 + plot_layout(ncol = 4)
 
