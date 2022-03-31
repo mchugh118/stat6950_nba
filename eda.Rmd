@@ -1,0 +1,134 @@
+---
+title: "Stat 6950 Project Proposal"
+author: "Patrick McHugh and Nick Mandarano"
+date: 'March 31, 2022'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE)
+library(corrplot) #for visualization of correlation
+library(lattice) #for visualization
+library(ggplot2) #for visualization
+library(patchwork) #for gridding ggplots
+library(caTools) #for splittind data into testing and training data
+library(dplyr) #manipulating dataframe
+library(plotly) #converting ggplot to plotly
+library(tidyverse)
+library(GGally)
+library(ggplot2)
+library(gridExtra)
+data <- read.csv("data/PlayerData.csv", row.names = 1)
+```
+
+
+## Exploratory Data Analysis
+
+
+Our data comes from four different datasets. We used three of Riguang Wen's [datasets](https://figshare.com/articles/dataset/NBA_data/5414170) from figshare.com -- \texttt{players cv}, \texttt{players salary}, and \texttt{players stat}. We also used a [dataset](https://zenodo.org/record/3750329#.YkT6YW7MJAe) called \texttt{NBA RS 2020-1950 Stats} uploaded to zenodo.org by Pablo Gomez and Sandra Giral. From these datasets, we considered the following variables.
+
+| Variable      | Description               | Type          | Source                  |
+|:--------------|:-------------------------:|:-------------:|:-----------------------:|
+| Player        | Name of player            | Character     | \texttt{players stat}   |
+| Age           | Age of player             | Numeric       | \texttt{players stat}   |
+| G             | Games played              | Numeric       | \texttt{players stat}   |
+| GS            | Games started             | Numeric       | \texttt{players stat}   |
+| MP            | Minutes played            | Numeric       | \texttt{players stat}   |
+| PER           | Player efficiency rating  | Numeric       | \texttt{players stat}   |
+| PTS           | Points                    | Numeric       | \texttt{NBA RS 2020-1950 Stats} |
+| X3PAr         | 3PA/FGA                   | Numeric       | \texttt{players stat}   |
+| FTr           | FTA/FGA                   | Numeric       | \texttt{players stat}   |
+| TS            | True shooting percentage  | Numeric       | \texttt{NBA RS 2020-1950 Stats} |
+| ORB           | Offensive rebounds        | Numeric       | \texttt{players stat}   |
+| DRB           | Defensive rebounds        | Numeric       | \texttt{players stat}   |
+| TRB           | Total rebounds            | Numeric       | \texttt{players stat}   |
+| AST           | Assists                   | Numeric       | \texttt{players stat}   |
+| STL           | Steals                    | Numeric       | \texttt{players stat}   |
+| BLK           | Blocks                    | Numeric       | \texttt{players stat}   |
+| TOV           | Turnovers                 | Numeric       | \texttt{players stat}   |
+| USG           | Usage percentage          | Numeric       | \texttt{players stat}   |
+| ORtg          | Offensive rating          | Numeric       | \texttt{players stat}   |
+| DRtg          | Defensive rating          | Numeric       | \texttt{players stat}   |
+| OWS           | Offensive win shares      | Numeric       | \texttt{players stat}   |
+| DWS           | Defensive win shares      | Numeric       | \texttt{players stat}   |
+| WS            | Win shares                | Numeric       | \texttt{players stat}   |
+| WS.48         | Win shares per 48 minutes | Numeric       | \texttt{players stat}   |
+| OBPM          | Offensive box +/-         | Numeric       | \texttt{players stat}   |
+| DBPM          | Defensive box +/-         | Numeric       | \texttt{players stat}   |
+| BPM           | Box +/-                   | Numeric       | \texttt{players stat}   |
+| VORP          | Value over replacement player | Numeric   | \texttt{players stat}   |
+| Pos           | Position                  | Factor        | \texttt{players salary} |
+| Ht            | Height in inches          | Numeric       | \texttt{players salary} |
+| Wt            | Weight in pounds          | Numeric       | \texttt{players salary} |
+| PwrSix        | Power Six College?        | Indicator     | \texttt{players cv}     |
+| International | International Player?     | Indicator     | \texttt{players cv}     |
+| Salary        | Salary in dollars         | Numeric       | \texttt{players salary}  |
+
+Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \texttt{ORB} and \texttt{DRB} in our model. Some other multicollinearity issues will likely arise given the correlation matrix of the numerical variables under consideration below. Some examples of potential issues are the correlation between \texttt{WS} and \texttt{PER} as well as that of \texttt{MP} and \texttt{G}.
+
+
+```{r echo=FALSE}
+corrplot(cor(data[sapply(data, is.numeric)]))
+```
+
+This matrix is an important figure for us and represents a key concept. In many datasets, one would expect some degree of correlation between predictors. Furthermore, many NBA advanced metrics available are different functions of the simpler statistics with many overlapping inputs. These attempt to capture different information, however, we can see right off the bat that there is significant multicollinearity and will need to use this knowledge to avoid unintentionally putting extra weight on some of the same underlying information.
+
+Also in the numeric variables are signs of non-normality. Of the 27 numeric variables considered after the exclusion of \texttt{BPM}, \texttt{WS} and \texttt{TRB}, 11 had medians that had 10% or more in difference of the mean, possibly indicating asymmetry. Of these, only the boxplots of \texttt{G} and \texttt{GS} did not signify outliers, though histograms of the data did show skewness. Histograms of the others (\texttt{FTr, ORB, AST, BLK, OWS, DWS, VORP, Salary}, and \texttt{PTS}) were all right-skewed. \texttt{GS} is fairly uniformly distributed from 10-82, with a higher density from 0-10. We would prefer approximately normal distributions of the covariates, to help obtain normally distributed residuals, and to avoid high leverage cases affecting the mean function. We will experiment with log, inverse, square root, and squaring transformations. Many covariates do appear to be normally distributed and useful without transformations. 
+
+```{r eda2, echo=FALSE}
+g_hist = data %>% ggplot(aes(x = G)) + geom_histogram() + ggtitle("Games")
+gs_hist = data %>% ggplot(aes(x = GS)) + geom_histogram() + ggtitle("Games Started")
+pts_hist = data %>% ggplot(aes(x = PTS)) + geom_histogram() + ggtitle("Points")
+per_hist = data %>% ggplot(aes(x = PER)) + geom_histogram() + ggtitle("Player Efficiency Rating")
+grid.arrange(g_hist, gs_hist, pts_hist, per_hist, nrow = 2, ncol=2)
+
+```
+
+
+We did make some transformations for categorical variables as well. NBA players are often discussed as either American or International, so we created a new variable labeling each player as one of these based on the place of birth. Additionally, we created the "Power Six" variable to see whether this has any indication; this may not be independent of American/International.
+
+```{r eda3, echo=FALSE}
+x = NULL
+```
+
+
+We can see that the distribution of salary is heavily skewed to the right. We expect to transform this variable to perform linear regression. After attempting several transformations such as an inverse and square root, a log transformation seems most appropriate, althought not perfect. We will consider other transformations and the Box-Cox method during the analysis:
+
+```{r eda1, echo=FALSE}
+data <- read.csv("data/PlayerData.csv", row.names = 1)
+
+y_hist = data %>% ggplot(aes(x = SALARY)) + geom_histogram() + ggtitle("Salary")
+logy_hist = data %>% ggplot(aes(x = log(SALARY))) + geom_histogram() + ggtitle("log(Salary)")
+sqrty_hist = data %>% ggplot(aes(x = sqrt(SALARY))) + geom_histogram() + ggtitle("Histogram of sqrt(salary)")
+invy_hist = data %>% ggplot(aes(x = 1/SALARY)) + geom_histogram() + ggtitle("Histogram of 1/salary")
+grid.arrange(y_hist, logy_hist, nrow = 1)
+
+```
+
+
+
+
+We also look at the relationships between salary and each of the predictors individually. There appears to be a relationship between salary and many of the covariates individually, including simple stats such as \texttt{MP} and \texttt{PTS}, as well as advanced stats like \texttt{PER} and \texttt{BPM}. There are many covariates that have a marginal relationship with salary. These relationships are primarily positive, indicating an increase in most stats such as points correlates with an increase in salary, but a small number, such as turnovers, may be negative. For some of them such as minutes, a marginal linear relationship seems appropriate; for others, such as \texttt{VORP}, there appears to be a marginal relationship that is not linear. As discussed earlier, trying to transform variables and account for the multicollinearity in covariates will be some of the challenges of this project. 
+
+
+Some covariates, such as \texttt{ORB}, do not appear to have a strong marginal relationship with salary; we will investigate whether these still may have a relationship with salary through interactions with other variables.
+
+```{r eda4, echo=FALSE}
+orb_plot = data %>% ggplot(aes(x = ORB.)) + geom_point(aes(y=log(SALARY))) + ggtitle("Offensive Rebounds vs log(Salary)")
+mp_plot = data %>% ggplot(aes(x = MP)) + geom_point(aes(y=log(SALARY))) + ggtitle("Minutes vs log(Salary)")
+obpm_plot = data %>% ggplot(aes(x = OBPM)) + geom_point(aes(y=log(SALARY))) + ggtitle("OBPM vs log(Salary)")
+tov_plot = data %>% ggplot(aes(x = TOV.)) + geom_point(aes(y=log(SALARY))) + ggtitle("Turnovers vs log(Salary)")
+grid.arrange(orb_plot, mp_plot, obpm_plot, tov_plot, nrow = 2, ncol=2)
+
+```
+
+After plotting boxplots of salary by each level of the categorical variables, salary does seem to vary across different levels of the variables. We plan to evaluate whether these relationships remain useful in the full model. Position and international each have a small number of levels; the team factor has 30 levels. We will evaluate whether this can be useful with all 30 levels, if there are ways to reduce this by grouping teams by things such as conference affiliation or market size, or if it is not useful at all in a model with less than 400 observations.
+
+```{r eda5, echo=FALSE}
+intl_box <- ggplot(data, aes(x=International, y=log(SALARY))) + geom_boxplot()
+team_box <- ggplot(data, aes(x=Tm, y=log(SALARY))) + geom_boxplot() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+grid.arrange(intl_box, team_box, nrow = 1)
+```
+
+This dataset is pretty broad, which leaves us open to many possibilities for modeling approaches. As mentioned before, it seems likely we will need to transform the y variable in some way, possibly with a Box-Cox approach. We are certainly dealing with some multicollinearity in covariates and will need to use tools such as AVPs and VIFs to account for this. Also, interaction effects seem plausible; for example, would a change in the number of rebounds per game be associated with the same change in salary for both guards and centers? We will look at interactions between both types of covariates (numerical and categorical). We do not initially expect to need any weighted regression or time series.
+
