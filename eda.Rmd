@@ -1,7 +1,7 @@
 ---
-title: "Stat 6950 Project Proposal"
+title: "Exploratory Data Analysis"
 author: "Patrick McHugh and Nick Mandarano"
-date: 'March 31, 2022'
+date: '3/31/2022'
 output: pdf_document
 ---
 

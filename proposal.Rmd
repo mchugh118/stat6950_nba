@@ -1,5 +1,5 @@
 ---
-title: "Proposal"
+title: "Project Proposal"
 author: "Patrick McHugh and Nick Mandarano"
 date: "3/31/2022"
 output:
@@ -13,11 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Proposal
 
-We are both interested in basketball, and chose to do an NBA-related project. Surprisingly, we are not the only people interested in basketball, and countless statistical analyses of basketball data have been done on a variety of platforms with a variety of goals. We attempted to come up with an original approach, and are deciding to create a regression model for salary of NBA players, using statistics and other information about the players as covariates.
+We are both interested in basketball, and chose to do an NBA-related project. Not surprisingly, we are not the only people interested in basketball, and countless statistical analyses of basketball data have been done on a plethora of platforms with a variety of goals. We attempted to come up with an original approach and decided to fit a regression model for salary of NBA players, using statistics and other information about the players as covariates.
 
 Our data includes many seasonal statistics for each player, including simple stats like points, rebounds, and assists, as well as a variety of advanced metrics such as True Shooting % and Box +/-. We also have access to some personal information for each player, such as team, position, height, weight, age, race, place of birth, college attended, and salary. We noticed some apparent inaccuracies in the race variable but all others will be under consideration for the model.
 
-We had access to data for many years of statistics, but chose to use only data from the most recent NBA season in the dataset, 2015-16, to avoid the need for a mixed effects model that would arise from using multiple seasons due to the heavy correlation between the observations from one player across different seasons.
+We had access to data from many years, but chose to use only data from the most recent NBA season in the dataset, 2015-16, to avoid the need for a mixed effects model that would arise from using multiple seasons due to the heavy correlation between the observations from one player across different seasons.
 
-Salary is known before the season starts and statistics are created, so it is not a response variable in the traditional sense of a causal effect. Our regression project attempts to explore the relationship between salary and the covariates, prescribe a true mean function, and identify players who may be overperforming or underperforming their contract; i.e., putting up better or worse statistics than one might expect a player on their salary to do.
+Salary is known before the season starts and statistics are created, so it is not a response variable in the traditional sense of a causal effect. Our regression project attempts to explore the relationship between salary and the covariates, prescribe a true mean function, and identify players who may be overperforming or underperforming their contract according to the 2015-16 market; i.e., putting up better or worse statistics than one might expect a player on their salary to do.
 
