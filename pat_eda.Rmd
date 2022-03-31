@@ -29,7 +29,8 @@ grid.arrange(y_hist, logy_hist, sqrty_hist, invy_hist, nrow = 2, ncol=2)
 We can see that the distribution of salary is heavily skewed to the right. We expect to transform this variable to perform linear regression. After attempting several transformations such as an inverse and square root, a log transformation seems most appropriate, althought not perfect. We will consider other transformations and the Box-Cox method during the analysis.
 
 ```{r eda2}
-numeric_cols = c("G", "GS", "MP", "PER", "X3PAr", "FTr", "ORB.", "DRB.", "TRB.", "AST.", "STL.", "BLK.", "TOV.", "USG.", "ORtg", "DRtg", "OWS", "DWS", "WS", "WS.48", "OBPM", "DBPM", "BPM", "VORP", "PTS", "TS.")
+numeric_cols = c("Age", "G", "GS", "MP", "PER", "X3PAr", "FTr", "ORB.", "DRB.", "TRB.", "AST.", "STL.", "BLK.", "TOV.", "USG.", "ORtg", "DRtg", "OWS", "DWS", "WS", "WS.48", "OBPM", "DBPM", "BPM", "VORP", "PTS", "TS.")
+categorical_cols = c("Tm", "Pos", "International")
 for (column in numeric_cols){
   #c = sym(column)
   #h = player_data %>% ggplot(aes(x = c)) + geom_histogram() + ggtitle(paste("Histogram of", column))
@@ -43,13 +44,22 @@ We did make some transformations for categorical variables as well. NBA players 
 
 
 ```{r eda3}
-numeric_cols = c("G", "GS", "MP", "PER", "X3PAr", "FTr", "ORB.", "DRB.", "TRB.", "AST.", "STL.", "BLK.", "TOV.", "USG.", "ORtg", "DRtg", "OWS", "DWS", "WS", "WS.48", "OBPM", "DBPM", "BPM", "VORP", "PTS", "TS.")
 for (column in numeric_cols){
-  #c = sym(column)
-  #h = player_data %>% ggplot(aes(x = c)) + geom_histogram() + ggtitle(paste("Histogram of", column))
-  plot(log(player_data$SALARY), player_data[,column], xlab=column, ylab="Salary", main=column)
+  plot(player_data[,column], log(player_data$SALARY), xlab=column, ylab="log salary", main=column)
 }
 ```
-We also look at the relationship
+We also look at the relationships between salary and each of the predictors individually. There appears to be a relationship between salary and many of the covariates individually, including simple stats such as minutes and points, as well as advanced stats like PER (Player Efficiency Rating), and Box +/-. There are many covariates that have a marginal relationship with salary. For some of them such as minutes, a marginal linear relationship seems appropriate; for others, such as VORP, a marginal linear relationship may not be appropriate. As discussed earlier, trying to transform variables and account for the multicollinearity in covariates will be some of the challenges of this project. 
 
+Some covariates, such as offensive rebounds, do not appear to have a strong marginal relationship with salary; we will investigate whether these still may affect salary through interactions with other variables.
 
+```{r eda4}
+for (column in categorical_cols){
+  boxplot(log(player_data$SALARY) ~ player_data[,column], xlab=column, ylab="log salary", main=column)
+}
+```
+
+After plotting boxplots of salary by each level of the categorical variables, salary does seem to vary across different levels of the variables. We plan to evaluate whether these relationships remain useful in the full model. Position and international each have a small number of levels; the team factor has 30 levels. We will evaluate whether this can be useful with all 30 levels, if there are ways to reduce this by grouping teams by things such as conference affiliation or market size, or if it is not useful at all in a model with less than 400 observations.
+
+This dataset is pretty broad, which leaves us open to many possibilities for modeling approaches. As mentioned before, it seems likely we will transform the y variable in some way, possibly with a Box-Cox approach. We are certainly dealing with some multicollinearity in covariates and will need to use tools such as AVPs and VIFs to account for this. Also, interaction effects seem plausible; for example, would a change in the number of rebounds per game be associated with the same change in salary for both guards and centers? We do not initially expect any time series or any weighted linear regression.
+
+One key figure for us is the matrix measuring correlations between the covariates. In many datasets, one would expect some degree of correlation between predictors. In this NBA dataset, however, many of the advanced metrics available are functions of some of the simpler statistics. We will need to use this knowledge to avoid putting the 
