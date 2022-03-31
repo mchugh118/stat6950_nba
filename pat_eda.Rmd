@@ -7,11 +7,49 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=70),tidy=TRUE)
+library(tidyverse)
+library(GGally)
 library(ggplot2)
+library(gridExtra)
+
 ```
 
-```{r single_var_models}
+```{r eda1}
 player_data <- read.csv("data/PlayerData.csv", row.names = 1)
-hist()
+
+y_hist = player_data %>% ggplot(aes(x = SALARY)) + geom_histogram() + ggtitle("Histogram of salary")
+logy_hist = player_data %>% ggplot(aes(x = log(SALARY))) + geom_histogram() + ggtitle("Histogram of log(salary)")
+sqrty_hist = player_data %>% ggplot(aes(x = sqrt(SALARY))) + geom_histogram() + ggtitle("Histogram of sqrt(salary)")
+invy_hist = player_data %>% ggplot(aes(x = 1/SALARY)) + geom_histogram() + ggtitle("Histogram of 1/salary")
+grid.arrange(y_hist, logy_hist, sqrty_hist, invy_hist, nrow = 2, ncol=2)
+
 ```
+
+We can see that the distribution of salary is heavily skewed to the right. We expect to transform this variable to perform linear regression. After attempting several transformations such as an inverse and square root, a log transformation seems most appropriate, althought not perfect. We will consider other transformations and the Box-Cox method during the analysis.
+
+```{r eda2}
+numeric_cols = c("G", "GS", "MP", "PER", "X3PAr", "FTr", "ORB.", "DRB.", "TRB.", "AST.", "STL.", "BLK.", "TOV.", "USG.", "ORtg", "DRtg", "OWS", "DWS", "WS", "WS.48", "OBPM", "DBPM", "BPM", "VORP", "PTS", "TS.")
+for (column in numeric_cols){
+  #c = sym(column)
+  #h = player_data %>% ggplot(aes(x = c)) + geom_histogram() + ggtitle(paste("Histogram of", column))
+  hist(player_data[,column], xlab=column, main=column)
+}
+```
+
+When looking at the covariates, many appear to be normally distributed and satisfy the assumptions used by the linear model. Some have a right skew, including many counting stats such as rebounds, blocks, and points. Games started is fairly uniformly distributed from 10-70, with a higher density from 0-10 and 70-82. Games played has a left skew. We will experiment with log, inverse, square root, and squaring transformations. We would prefer approximately normal distributions of the covariates, to help obtain normally distributed residuals, and to avoid high leverage cases affecting the mean function.
+
+We did make some transformations for categorical variables as well. NBA players are often discussed as either American or International, so we created a new variable labeling each player as one of these based on the place of birth. Additionally, we created another categorical predictor for "major college," "non-major college," or "no college" to see whether this has any indication; thi
+
+
+```{r eda3}
+numeric_cols = c("G", "GS", "MP", "PER", "X3PAr", "FTr", "ORB.", "DRB.", "TRB.", "AST.", "STL.", "BLK.", "TOV.", "USG.", "ORtg", "DRtg", "OWS", "DWS", "WS", "WS.48", "OBPM", "DBPM", "BPM", "VORP", "PTS", "TS.")
+for (column in numeric_cols){
+  #c = sym(column)
+  #h = player_data %>% ggplot(aes(x = c)) + geom_histogram() + ggtitle(paste("Histogram of", column))
+  plot(log(player_data$SALARY), player_data[,column], xlab=column, ylab="Salary", main=column)
+}
+```
+We also look at the relationship
+
+
