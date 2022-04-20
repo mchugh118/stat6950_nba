@@ -1,0 +1,55 @@
+---
+title: "pat_modeling"
+author: "Patrick McHugh"
+date: "4/20/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=70),tidy=TRUE)
+
+library(tidyverse)
+library(leaps)
+library(MASS)
+```
+
+
+We will load the data and filter to include only terms we want to consider for the model. We will start by looking at a full model with all possible predictors. We observe that in this case, Age, DBPM, VORP, and Multi-team affiliation have very significant relationships with log of salary, even after accounting for the other predictors. Other variables that have moderately significant relationships with salary even after accounting for the other predictors are OWS, DWS, G, and Position.
+
+```{r p1}
+datax = read.csv("data/PlayerData.csv")
+data <- read_csv("data/PlayerData.csv")
+
+data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, GS, MP, PER, X3PAr, FTr, ORB., DRB., TRB., AST., STL., BLK., TOV., USG., ORtg, DRtg, OWS, DWS, WS.48, OBPM, DBPM, VORP, Pos, Height, PTS, TS., International, Conference)
+n_predictors = ncol(data_regressors) - 1
+
+#all_models = regsubsets(SALARY ~ ., force.in = 1, data = data_regressors, nbest = max(choose(n_predictors, 0:n_predictors)), really.big = T, nvmax = 13)
+null = lm(logsal ~ 1, data = data_regressors)
+full = lm(logsal ~ ., data = data_regressors)
+# summary(full)
+
+```
+
+
+We'll next run a stepwise model search using both AIC and BIC to provide another starting point:
+
+```{r p2}
+bic = log(nrow(data_regressors))
+stepAIC(object = null, scope = list(lower = null, upper = full),
+direction = "both", k = bic)
+stepAIC(object = null, scope = list(lower = null, upper = full),
+direction = "both", k = 2)
+```
+
+The model that minimized AIC was a model using MP, Age, Conference, USG, DBPM, Height, AST, OBP, VORP, OWS, PER, ORB, G, DWS, and DRtg.
+
+The model that minimized BIC was a model using Minutes, Age, Conference, UGS, and DBPM.
+
+We'll look at some diagnostic plots for these models to see where we're at:
+
+```{r p3}
+
+```
