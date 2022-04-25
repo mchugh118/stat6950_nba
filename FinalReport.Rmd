@@ -24,7 +24,6 @@ library(corrplot)
 
 ## Variable Selection
 
-
 | Variable      | Description               | Type          | Source                  |
 |:--------------|:-------------------------:|:-------------:|:-----------------------:|
 | Player        | Name of player            | Character     | \texttt{players stat}   |
