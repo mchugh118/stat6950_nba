@@ -1,5 +1,6 @@
 library(car)
 library(dplyr)
+library(readr)
 data <- read_csv("data/PlayerData.csv")
 
 data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% 

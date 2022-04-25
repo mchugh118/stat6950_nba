@@ -15,7 +15,31 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Variable Selection
 
+### Stepwise Regression Models
+
+### Correlation Matrix
+
+### Variance Inflation Factors
+
+### Added Variable Plots
+
+## Diagnostics
+
+### Leverage Points
+
+### Cook's Distances
+
+### Outliers
+
 ## Model Fitting
+
+### Test for Interaction
+
+### Test for Higher Order
+
+### Model Validation
+
+### Final Model
 
 ## Discussion
 
