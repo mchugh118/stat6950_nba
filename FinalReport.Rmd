@@ -17,22 +17,39 @@ library(gridExtra)
 library(car)
 library(dplyr)
 library(readr)
+library(corrplot)
 ```
 
 ## Introduction
 
 ## Variable Selection
 ```{r}
+data <- read.csv("data/PlayerData.csv")[,-1]
+```
+
+### Correlation Matrix
+```{r}
+corrplot(cor(data[sapply(data, is.numeric)]))
+```
+
+### Stepwise Regression Models
+```{r}
 data <- read_csv("data/PlayerData.csv")
 data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% 
   dplyr::select(logsal, Age, G, GS, gs_adj, MP,PER, X3PAr, FTr, ftr_adj, ORB., orb_adj, DRB., TRB., AST.,
                 STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, OWS, ows_adj, DWS, dws_adj, WS.48,
                 OBPM, DBPM, VORP, vorp_adj, Pos, Height, PTS, TS., International, Conference)
+
+null = lm(logsal ~ 1, data = data_regressors)
+full = lm(logsal ~ ., data = data_regressors)
+summary(full)
+
+bic = log(nrow(data_regressors))
+stepbic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
+direction = "both", k = bic)
+stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
+direction = "both", k = 2)
 ```
-
-### Stepwise Regression Models
-
-### Correlation Matrix
 
 ### Variance Inflation Factors
 
