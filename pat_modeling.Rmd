@@ -14,22 +14,38 @@ knitr::opts_chunk$set(tidy.opts=list(width.cutoff=70),tidy=TRUE)
 library(tidyverse)
 library(leaps)
 library(MASS)
+library(ggplot2)
+library(gridExtra)
+library(car)
+
 ```
 
 
-We will load the data and filter to include only terms we want to consider for the model. We will start by looking at a full model with all possible predictors. We observe that in this case, Age, DBPM, VORP, and Multi-team affiliation have very significant relationships with log of salary, even after accounting for the other predictors. Other variables that have moderately significant relationships with salary even after accounting for the other predictors are OWS, DWS, G, and Position.
+We will load the data and filter to include only terms we want to consider for the model. After our EDA and some quick model building, it was clear that VORP was an important predictor. However, the distribution of VORP was skewed, and its relationship with log salary was not linear. A log transformation seemed appropriate. We min/max normalized VORP between 0 and 1 to eliminate negative values and took the log, which seemed like a better predictor.
 
 ```{r p1}
 datax = read.csv("data/PlayerData.csv")
 data <- read_csv("data/PlayerData.csv")
 
-data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, GS, MP, PER, X3PAr, FTr, ORB., DRB., TRB., AST., STL., BLK., TOV., USG., ORtg, DRtg, OWS, DWS, WS.48, OBPM, DBPM, VORP, Pos, Height, PTS, TS., International, Conference)
+data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, GS, gs_adj, MP, PER, X3PAr, FTr, ftr_adj, ORB., orb_adj, DRB., TRB., AST., STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, OWS, ows_adj, DWS, dws_adj, WS.48, OBPM, DBPM, VORP, vorp_adj, Pos, Height, PTS, TS., International, Conference)
+
+vorp_hist = data_regressors %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
+vorp_scatter = data_regressors %>% ggplot(aes(x=VORP)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of VORP vs. log salary")
+adj_vorp_hist = data_regressors %>% ggplot(aes(x=vorp_adj)) + geom_histogram() + ggtitle("Histogram of transformed VORP")
+adj_vorp_scatter = data_regressors %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of transformed VORP vs. log salary")
+grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 n_predictors = ncol(data_regressors) - 1
+
+```
+
+
+We will start by looking at a full model with all possible predictors. We observe that in this case, Age, DBPM, VORP, and Multi-team affiliation have very significant relationships with log of salary, even after accounting for the other predictors. Other variables that have moderately significant relationships with salary even after accounting for the other predictors are OWS, DWS, G, and Position.
+```{r p1b}
 
 #all_models = regsubsets(SALARY ~ ., force.in = 1, data = data_regressors, nbest = max(choose(n_predictors, 0:n_predictors)), really.big = T, nvmax = 13)
 null = lm(logsal ~ 1, data = data_regressors)
 full = lm(logsal ~ ., data = data_regressors)
-# summary(full)
+summary(full)
 
 ```
 
@@ -38,18 +54,96 @@ We'll next run a stepwise model search using both AIC and BIC to provide another
 
 ```{r p2}
 bic = log(nrow(data_regressors))
-stepAIC(object = null, scope = list(lower = null, upper = full),
+stepbic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
 direction = "both", k = bic)
-stepAIC(object = null, scope = list(lower = null, upper = full),
+stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
 direction = "both", k = 2)
 ```
 
-The model that minimized AIC was a model using MP, Age, Conference, USG, DBPM, Height, AST, OBP, VORP, OWS, PER, ORB, G, DWS, and DRtg.
+From this initial analysis, some important predictors appear to be Age, DBPM, Conference, Minutes, and Usage. We can see that the 'conference' factor is really picking up on players that appeared on multiple teams. Sometimes these are good players who have been traded, but often these players are end of the bench guys that sign cheap, short term contracts. This having a relationship with salary would make sense. We will create a new variable that just flags players that appeared on multiple teams within the season.
 
-The model that minimized BIC was a model using Minutes, Age, Conference, UGS, and DBPM.
+We can also see that Position has some redundancy and maybe too much granularity; we will clean this up by grouping into "Guards", "Wings", and "Bigs":
+
+```{r p2b}
+pos_box = data %>% ggplot(aes(x = Pos, y = log(SALARY))) + geom_boxplot()
+```
 
 We'll look at some diagnostic plots for these models to see where we're at:
 
 ```{r p3}
+stepaic_resid_plot <- data.frame(resid=stepaic_model$residuals, fitted_logsal=stepaic_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise AIC model residual plot")
+stepbic_resid_plot <- data.frame(resid=stepbic_model$residuals , fitted_logsal=stepbic_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise BIC model residual plot")
+
+grid.arrange(stepaic_resid_plot, stepbic_resid_plot, nrow = 1)
+```
+
+We can see that there are some problems with these residual plots. The densest area of both plots appears to be following a downward trend, and the variance is not constant across all fitted values, i.e., these are not null plots. The models need improvement. It is also noteworthy that despite AIC including several more predictors, the residual plots are very similar.
+
+In our EDA, we also noted that there is some heavy multicollinearity between predictors. We looked at the correlations between predictors, as well as VIFs, and we will try and subset the data to remove variables that are heavily correlated. Also, for variables that were transformed, we left in the raw and transformed columns in our first models. 
+
+```{r p4}
+corrs = cor(data[sapply(data, is.numeric)])
+max_corr = 0.9
+for (ind in which(abs(corrs) > max_corr & corrs < 1)){
+  k <- arrayInd(ind, dim(corrs))
+  var1 <- rownames(corrs)[k[,1]]
+  var2 <- colnames(corrs)[k[,2]]
+  cat(var1, ", ", var2, ": ", corrs[ind], "\n", sep="")
+}
+vif(full)
+```
+
+
+We will try model building again on the subsetted data:
+```{r p4b}
+data_trimmed <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, PTS, TS., International, Multiteam)
+trimmed_null = lm(logsal ~ 1, data = data_trimmed)
+trimmed_full = lm(logsal ~ ., data = data_trimmed)
+vif(trimmed_full)
+corrplot(cor(data_trimmed[sapply(data_trimmed, is.numeric)]), method="number")
+summary(trimmed_full)
+trimmed_aic <- stepAIC(object = trimmed_null, scope = list(lower = trimmed_null, upper = trimmed_full),
+direction = "both", k = 2)
+```
+
+From this point, we can see that adjusted VORP, Age, G, and Multiteam are the most important predictors, with other useful ones being DBPM, dws_adj, ows_adj, MP, WS/48, OBPM, and maybe Position category. We'll look at residuals of a couple models and see where we're at:
+
+```{r p5}
+trimmed_resid_plot <- data.frame(resid=trimmed_aic$residuals , fitted_logsal=trimmed_aic$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise AIC model residual plot")
+
+```
+
+
+Now, we'll look at some of the highest leverage cases.
+
+```{r p6}
+show_diagnostics <- function(model){
+  x = model.matrix(model)
+  h = x %*% solve(t(x) %*% x) %*% t(x)
+  leverages = diag(h)
+  lev_resid_plot <- data.frame(resid=model$residuals , fitted_logsal=model$fitted.values, leverage=leverages) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(size=leverages, color=leverages)) + ggtitle("Residual plot with leverages")
+  cooks = cooks.distance(trimmed_aic)
+  cook_resid_plot <- data.frame(resid=model$residuals , fitted_logsal=model$fitted.values, cook_distance=cooks) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(size=cook_distance, color=cook_distance)) + ggtitle("Residual plot with cooks distance")
+  print(lev_resid_plot)
+  print(cook_resid_plot)
+}
+
+show_diagnostics(trimmed_aic)
+
+```
+
+
+There's a case with a large cooks distance; we'll formally test if this is an outlier:
+```{r p7}
+test_outlier_meanshift <- function(model, ind){
+  p = length(coef(model))
+  n = nrow(model.matrix(model))
+  ri = rstandard(model)[ind]
+  t_stat = ri * sqrt(((n - p - 1) / (n - p - (ri ^ 2))))
+  pval = pt(t_stat, n - p - 1)
+  return (pval)
+}
+
+test_outlier_meanshift(trimmed_aic, which.max(cooks.distance(trimmed_aic)))
 
 ```
