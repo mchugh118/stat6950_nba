@@ -24,6 +24,8 @@ library(corrplot)
 
 ## Variable Selection
 
+Our data comes from four different datasets. We used three of Riguang Wen's [datasets](https://figshare.com/articles/dataset/NBA_data/5414170) from figshare.com -- \texttt{players cv}, \texttt{players salary}, and \texttt{players stat}. We also used a [dataset](https://zenodo.org/record/3750329#.YkT6YW7MJAe) called \texttt{NBA RS 2020-1950 Stats} uploaded to zenodo.org by Pablo Gomez and Sandra Giral. From these datasets, we considered the following variables.
+
 | Variable      | Description               | Type          | Source                  |
 |:--------------|:-------------------------:|:-------------:|:-----------------------:|
 | Player        | Name of player            | Character     | \texttt{players stat}   |
@@ -62,6 +64,9 @@ library(corrplot)
 | Salary        | Salary in dollars         | Numeric       | \texttt{players salary}  |
 
 ### Exploratory Data Analysis
+
+Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \texttt{ORB} and \texttt{DRB} in our model. 
+
 ```{r}
 data <- read.csv("data/PlayerData.csv")[,-1]
 
