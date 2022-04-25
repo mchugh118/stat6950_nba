@@ -70,6 +70,24 @@ usa <- read.delim("data/usa.txt")[,1]
 data$International = ifelse(data$Place_of_Birth %in% usa, "No", "Yes")
 
 
+east = c("CHI", "ORL", "CHO", "ATL", "WAS", "DET", "BRK", "NYK", "BOS", "TOR", "PHI", "MIA", "MIL", "IND", "CLE")
+west = c("MIN", "UTA", "PHO", "NOP", "POR", "GSW", "OKC", "LAL", "LAC", "SAC", "SAS", "MEM", "DAL", "HOU", "DEN")
+data$Conference = ifelse(data$Tm %in% east, "East", ifelse(data$Tm %in% west, "West", "Multi"))
+data$Multiteam = ifelse(data$Tm == "TOT", 1, 0)
+data$Pos_cat = ifelse(data$Pos == "G", "G", ifelse(data$Pos %in% c("C", "C-F", "F-C"), "Big", "Wing"))
+
+attach(data)
+data$vorp_adj = log(((VORP - min(VORP))/(max(VORP) - min(VORP))) + .01)
+data$dws_adj = log(DWS + 1)
+data$blk_adj = log(BLK. + 1)
+data$stl_adj = log(STL. + 1)
+data$ftr_adj = log(FTr + 1)
+data$gs_adj = log(GS + 1)
+data$ows_adj = log(((OWS - min(OWS))/(max(OWS) - min(OWS))) + 1)
+data$orb_adj = log(ORB. + 1)
+
+
+
 write.csv(data,"data/PlayerData.csv", row.names = TRUE)
 
 
@@ -79,3 +97,4 @@ summary(lm(WS ~ OWS + DWS))  # R^2 > .999
 summary(lm(TRB. ~ ORB. + DRB.))  # R^2 > .998
 
 data <- data[,-c(12,22,26)]
+
