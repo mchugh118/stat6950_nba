@@ -1,0 +1,22 @@
+---
+title: "FinalReport"
+author: "Nick Mandarano and Patrick McHugh"
+date: "4/26/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Just a rough outline of what we can discuss in the actual paper
+```
+
+## Introduction
+
+## Variable Selection
+
+## Model Fitting
+
+## Discussion
+
+## Conclusion
