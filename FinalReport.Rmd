@@ -1,5 +1,5 @@
 ---
-title: "FinalReport"
+title: "Final Report"
 author: "Nick Mandarano and Patrick McHugh"
 date: "4/26/2022"
 output:
@@ -66,8 +66,6 @@ Our data comes from four different datasets. We used three of Riguang Wen's [dat
 | International | International Player?     | Indicator     | \texttt{players cv}     |
 | Salary        | Salary in dollars         | Numeric       | \texttt{players salary} |
 
-### Exploratory Data Analysis
-
 Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \texttt{ORB} and \texttt{DRB} in our model. 
 
 From our EDA, we concluded that a log transformation of the response variable, salary, would be appropriate based on the skewed distribution.
@@ -86,35 +84,42 @@ We also noticed that many of the covariates had skewed distributions, or did not
 
 Below we used VORP as an example; we can see the distribution of VORP and its plot against log(salary) pre and post transformation:
 
-
-
 ```{r}
-data <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
+data_init <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
+data <- subset(data_init, select = -c(TRB., WS, VORP, DWS, BLK., STL., FTr, GS, OWS, ORB., Place_of_Birth,
+                                      Ht, Pos, College, SALARY, Player, Birth.Date, Tm, Multiteam))
 attach(data)
-Pos <- as.factor(Pos)
-International <- as.factor(International)
-Conference <- as.factor(Conference)
-Multiteam <- as.factor(Multiteam)
-Pos_cat <- as.factor(Pos_cat)
+# Pos <- as.factor(Pos)
+# International <- as.factor(International)
+# Conference <- as.factor(Conference)
+# Multiteam <- as.factor(Multiteam)  # This is causing trouble. I temporarily removed it.
+# Pos_cat <- as.factor(Pos_cat)
 
-vorp_hist = data %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
-vorp_scatter = data %>% ggplot(aes(x=VORP)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of VORP vs. log salary")
-adj_vorp_hist = data %>% ggplot(aes(x=vorp_adj)) + geom_histogram() + ggtitle("Histogram of transformed VORP")
-adj_vorp_scatter = data %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of transformed VORP vs. log salary")
+vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
+vorp_scatter = data_init %>% ggplot(aes(x=VORP)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of VORP vs. log salary")
+adj_vorp_hist = data_init %>% ggplot(aes(x=vorp_adj)) + geom_histogram() + ggtitle("Histogram of transformed VORP")
+adj_vorp_scatter = data_init %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of transformed VORP vs. log salary")
 grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 ```
 
-After the EDA
+Once our predictors are appropriately transformed, we consider all pairwise correlations between covariates as an inital search for possibly collinearity. 
 
-### Correlation Matrix
 ```{r}
 corrplot(cor(data[sapply(data, is.numeric)]))
-cor(PTS, MP)
-cor(WS.48, PER)
-cor(DBPM,DRtg)
-cor(ORtg, TS.)
+
 # Which did we remove from here and why?
 ```
+
+Four pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that \texttt{PTS} and \texttt{MP} have a correlation coefficient of $0.903$, \texttt{ORtg} and \texttt{TS.} have a correlation coefficient of $0.888$, \texttt{WS.48} and \texttt{PER} have a correlation coefficient of $0.864$, and finally \texttt{DBPM} and \texttt{DRtg} have a correlation coefficient of $-0.760$. 
+
+### Variance Inflation Factors
+```{r}
+full = lm(logsal ~ ., data = data)
+vif(full)[,3]
+#full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
+```
+
+### Added Variable Plots
 
 ### Stepwise Regression Models
 ```{r}
@@ -129,16 +134,6 @@ direction = "both", k = bic)
 stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
 direction = "both", k = 2)
 ```
-
-### Variance Inflation Factors
-```{r}
-full = lm(logsal ~ ., data = data)
-summary(full)
-#vif(full)[,3]
-#full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
-```
-
-### Added Variable Plots
 
 ## Diagnostics
 
