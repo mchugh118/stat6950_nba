@@ -17,6 +17,8 @@ library(MASS)
 library(ggplot2)
 library(gridExtra)
 library(car)
+library(corrplot)
+
 
 ```
 
@@ -27,7 +29,7 @@ We will load the data and filter to include only terms we want to consider for t
 datax = read.csv("data/PlayerData.csv")
 data <- read_csv("data/PlayerData.csv")
 
-data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, GS, gs_adj, MP, PER, X3PAr, FTr, ftr_adj, ORB., orb_adj, DRB., TRB., AST., STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, OWS, ows_adj, DWS, dws_adj, WS.48, OBPM, DBPM, VORP, vorp_adj, Pos, Height, PTS, TS., International, Conference)
+data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, GS, gs_adj, MP, PER, X3PAr, FTr, ftr_adj, ORB., orb_adj, DRB., TRB., AST., STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, OWS, ows_adj, DWS, dws_adj, WS.48, OBPM, DBPM, VORP, vorp_adj, Pos, Height, PTS, pts_adj, TS., International, Conference)
 
 vorp_hist = data_regressors %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
 vorp_scatter = data_regressors %>% ggplot(aes(x=VORP)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of VORP vs. log salary")
@@ -96,7 +98,7 @@ vif(full)
 
 We will try model building again on the subsetted data:
 ```{r p4b}
-data_trimmed <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, PTS, TS., International, Multiteam)
+data_trimmed <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
 trimmed_null = lm(logsal ~ 1, data = data_trimmed)
 trimmed_full = lm(logsal ~ ., data = data_trimmed)
 vif(trimmed_full)
@@ -122,7 +124,7 @@ show_diagnostics <- function(model){
   h = x %*% solve(t(x) %*% x) %*% t(x)
   leverages = diag(h)
   lev_resid_plot <- data.frame(resid=model$residuals , fitted_logsal=model$fitted.values, leverage=leverages) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(size=leverages, color=leverages)) + ggtitle("Residual plot with leverages")
-  cooks = cooks.distance(trimmed_aic)
+  cooks = cooks.distance(model)
   cook_resid_plot <- data.frame(resid=model$residuals , fitted_logsal=model$fitted.values, cook_distance=cooks) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(size=cook_distance, color=cook_distance)) + ggtitle("Residual plot with cooks distance")
   print(lev_resid_plot)
   print(cook_resid_plot)
@@ -147,3 +149,21 @@ test_outlier_meanshift <- function(model, ind){
 test_outlier_meanshift(trimmed_aic, which.max(cooks.distance(trimmed_aic)))
 
 ```
+
+We notice that the p-value for a mean shift for this case is very small. Looking at the data for this particular observation, we see that it is an outlier on many levels - this player had 2 games played, 6 minutes, a wildly high PER and Usage rate, 0 for many counting stats (Assists, steals, etc.), and a very small salary of $30000. Many of these stats are unstable due to the very small number of minutes played. Also, this player is Thanasis Antetokounmpo, who is a unique case because many people consider him to be a non-NBA level player, who only got into the league because his brother Giannis is one of the best players in the world. Thus, we are comfortable removing him from the dataset. 
+
+```{r p8}
+data <- data %>% filter(Player != "Thanasis Antetokounmpo")
+
+data_trimmed <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
+trimmed_null = lm(logsal ~ 1, data = data_trimmed)
+trimmed_full = lm(logsal ~ ., data = data_trimmed)
+vif(trimmed_full)
+corrplot(cor(data_trimmed[sapply(data_trimmed, is.numeric)]), method="number")
+summary(trimmed_full)
+trimmed_aic <- stepAIC(object = trimmed_null, scope = list(lower = trimmed_null, upper = trimmed_full),
+direction = "both", k = 2)
+show_diagnostics(trimmed_aic)
+
+```
+
