@@ -61,7 +61,7 @@ Our data comes from four different datasets. We used three of Riguang Wen's [dat
 | Wt            | Weight in pounds          | Numeric       | \texttt{players salary} |
 | PwrSix        | Power Six College?        | Indicator     | \texttt{players cv}     |
 | International | International Player?     | Indicator     | \texttt{players cv}     |
-| Salary        | Salary in dollars         | Numeric       | \texttt{players salary}  |
+| Salary        | Salary in dollars         | Numeric       | \texttt{players salary} |
 
 ### Exploratory Data Analysis
 
