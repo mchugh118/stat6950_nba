@@ -13,7 +13,13 @@ International <- as.factor(International)
 Conference <- as.factor(Conference)
 
 full = lm(logsal ~ ., data = data_regressors)
+summary(full)
 
 avPlots(full, terms=~., intercept = FALSE)
 
-vif(full)[,3]>5
+vif(full)[,3]
+
+full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data_regressors) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
+summary(full2)
+avPlots(full2, terms=~., intercept = FALSE, ellipse = TRUE)
+vif(full2)[,3]
