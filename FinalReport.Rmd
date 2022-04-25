@@ -82,7 +82,9 @@ attach(data_regressors)
 ```{r}
 corrplot(cor(data_regressors[sapply(data_regressors, is.numeric)]))
 cor(PTS, MP)
-
+cor(WS.48, PER)
+cor(DBPM,DRtg)
+cor(ORtg, TS.)
 # Which did we remove from here and why?
 ```
 
