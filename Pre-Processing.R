@@ -77,13 +77,17 @@ data$Multiteam = ifelse(data$Tm == "TOT", 1, 0)
 data$Pos_cat = ifelse(data$Pos == "G", "G", ifelse(data$Pos %in% c("C", "C-F", "F-C"), "Big", "Wing"))
 
 attach(data)
+vorp_normalized = ((VORP - min(VORP))/(max(VORP) - min(VORP)))
+ows_normalized = ((OWS - min(OWS))/(max(OWS) - min(OWS)))
+
 data$vorp_adj = log(((VORP - min(VORP))/(max(VORP) - min(VORP))) + .01)
-data$dws_adj = log(DWS + 1)
+data$dws_adj = sqrt(DWS)
+data$pts_adj = sqrt(PTS)
 data$blk_adj = log(BLK. + 1)
 data$stl_adj = log(STL. + 1)
-data$ftr_adj = log(FTr + 1)
+data$ftr_adj = sqrt(FTr)
 data$gs_adj = log(GS + 1)
-data$ows_adj = log(((OWS - min(OWS))/(max(OWS) - min(OWS))) + 1)
+data$ows_adj = log(((OWS - min(OWS))/(max(OWS) - min(OWS))) + .1)
 data$orb_adj = log(ORB. + 1)
 
 
