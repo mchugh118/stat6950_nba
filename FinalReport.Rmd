@@ -39,6 +39,10 @@ data_regressors <- data %>% mutate(logsal = log(SALARY)) %>%
   dplyr::select(logsal, Age, G, GS, gs_adj, MP,PER, X3PAr, FTr, ftr_adj, ORB., orb_adj, DRB., TRB., AST.,
                 STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, OWS, ows_adj, DWS, dws_adj, WS.48,
                 OBPM, DBPM, VORP, vorp_adj, Pos, Height, PTS, TS., International, Conference)
+attach(data_regressors)
+Pos <- as.factor(Pos)
+International <- as.factor(International)
+Conference <- as.factor(Conference)
 
 null = lm(logsal ~ 1, data = data_regressors)
 full = lm(logsal ~ ., data = data_regressors)
@@ -52,6 +56,12 @@ direction = "both", k = 2)
 ```
 
 ### Variance Inflation Factors
+```{r}
+full = lm(logsal ~ ., data = data_regressors)
+summary(full)
+vif(full)[,3]
+full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data_regressors) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
+```
 
 ### Added Variable Plots
 
