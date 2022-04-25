@@ -61,13 +61,18 @@ library(corrplot)
 | International | International Player?     | Indicator     | \texttt{players cv}     |
 | Salary        | Salary in dollars         | Numeric       | \texttt{players salary}  |
 
+### Exploratory Data Analysis
 ```{r}
 data <- read.csv("data/PlayerData.csv")[,-1]
+
+# Which variables did we transform and why?
 ```
 
 ### Correlation Matrix
 ```{r}
 corrplot(cor(data[sapply(data, is.numeric)]))
+
+# Which did we remove from here and why?
 ```
 
 ### Stepwise Regression Models
