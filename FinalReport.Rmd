@@ -2,7 +2,9 @@
 title: "FinalReport"
 author: "Nick Mandarano and Patrick McHugh"
 date: "4/26/2022"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -68,23 +70,45 @@ Our data comes from four different datasets. We used three of Riguang Wen's [dat
 
 Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \texttt{ORB} and \texttt{DRB} in our model. 
 
+From our EDA, we concluded that a log transformation of the response variable, salary, would be appropriate based on the skewed distribution.
+
+We also noticed that many of the covariates had skewed distributions, or did not have linear marginal relationships with the response log(salary). We attempted to make these variables approximately normally distirbutied, with an approximately linear marginal relationship with the response. We experimented with log, square root, and squaring transformations, and ended up considering the following transformations in our model:
+
+* VORP: We min/max normalized this between 0 and 1 to eliminate negative values, and then took the log
+* OWS: We min/max normalized this between 0 and 1 to eliminate negative values, and then took the log
+* DWS: Square root
+* PTS: Square root
+* FTr: Square root
+* BLK: log
+* STL: log
+* GS: log
+* ORB: log
+
+Below we used VORP as an example; we can see the distribution of VORP and its plot against log(salary) pre and post transformation:
+
+
+
 ```{r}
-data <- read.csv("data/PlayerData.csv")[,-1]
-data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% 
-  dplyr::select(logsal, Age, G, GS, gs_adj, MP, PER, X3PAr, FTr, ftr_adj, orb_adj, DRB., AST.,
-                STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48,
-                OBPM, DBPM, vorp_adj, Pos, Height, PTS, TS., International, Conference)
-attach(data_regressors)
+data <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
+attach(data)
 Pos <- as.factor(Pos)
 International <- as.factor(International)
 Conference <- as.factor(Conference)
+Multiteam <- as.factor(Multiteam)
+Pos_cat <- as.factor(Pos_cat)
 
-# Which variables did we transform and why?
+vorp_hist = data %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
+vorp_scatter = data %>% ggplot(aes(x=VORP)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of VORP vs. log salary")
+adj_vorp_hist = data %>% ggplot(aes(x=vorp_adj)) + geom_histogram() + ggtitle("Histogram of transformed VORP")
+adj_vorp_scatter = data %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of transformed VORP vs. log salary")
+grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 ```
+
+After the EDA
 
 ### Correlation Matrix
 ```{r}
-corrplot(cor(data_regressors[sapply(data_regressors, is.numeric)]))
+corrplot(cor(data[sapply(data, is.numeric)]))
 cor(PTS, MP)
 cor(WS.48, PER)
 cor(DBPM,DRtg)
@@ -95,11 +119,11 @@ cor(ORtg, TS.)
 ### Stepwise Regression Models
 ```{r}
 
-null = lm(logsal ~ 1, data = data_regressors)
-full = lm(logsal ~ ., data = data_regressors)
+null = lm(logsal ~ 1, data = data)
+full = lm(logsal ~ ., data = data)
 summary(full)
 
-bic = log(nrow(data_regressors))
+bic = log(nrow(data))
 stepbic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
 direction = "both", k = bic)
 stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
@@ -108,10 +132,10 @@ direction = "both", k = 2)
 
 ### Variance Inflation Factors
 ```{r}
-full = lm(logsal ~ ., data = data_regressors)
+full = lm(logsal ~ ., data = data)
 summary(full)
-vif(full)[,3]
-full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data_regressors) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
+#vif(full)[,3]
+#full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
 ```
 
 ### Added Variable Plots
