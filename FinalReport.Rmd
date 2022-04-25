@@ -80,7 +80,8 @@ attach(data_regressors)
 
 ### Correlation Matrix
 ```{r}
-corrplot(cor(data[sapply(data, is.numeric)]))
+corrplot(cor(data_regressors[sapply(data_regressors, is.numeric)]))
+cor(PTS, MP)
 
 # Which did we remove from here and why?
 ```
