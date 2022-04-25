@@ -8,12 +8,27 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-# Just a rough outline of what we can discuss in the actual paper
+# Loading Libraries
+library(tidyverse)
+library(leaps)
+library(MASS)
+library(ggplot2)
+library(gridExtra)
+library(car)
+library(dplyr)
+library(readr)
 ```
 
 ## Introduction
 
 ## Variable Selection
+```{r}
+data <- read_csv("data/PlayerData.csv")
+data_regressors <- data %>% mutate(logsal = log(SALARY)) %>% 
+  dplyr::select(logsal, Age, G, GS, gs_adj, MP,PER, X3PAr, FTr, ftr_adj, ORB., orb_adj, DRB., TRB., AST.,
+                STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, OWS, ows_adj, DWS, dws_adj, WS.48,
+                OBPM, DBPM, VORP, vorp_adj, Pos, Height, PTS, TS., International, Conference)
+```
 
 ### Stepwise Regression Models
 
