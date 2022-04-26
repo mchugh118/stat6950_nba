@@ -263,6 +263,32 @@ vif(full)[,3]
 
 ## Model Fitting
 
+As we continued the model building process, we wanted to make sure we were avoiding overfitting. We created an algorithm where we used the regsubsets function to identify the n best predictors for all n from 1 to a large number, and included first level interaction effects. While some of these models included interactions without the corresponding main effects, we just used this as a rough guideline. We then looked at some of the evaluation metrics for these "best n predictors" models, such as $R^2$ and MSE, on k-folds cross-validated data. As the number of predictors increased, the model metrics tended to flatten out. While it was good that the cross-validation based metrics weren't getting worse, the rate of improvement decreased heavily. Also, as more terms are added to the model, training set metrics such as $R^2$ and MSE continued to rise. The increasing gap between training metrics and cross-validation metrics concerned us, and guided us towards the simpler models. Also, with similar c-v based evaluation metrics, we prefer simpler models, due to interpretability. This gave us an idea that we needed on the order of 10-30 models 
+
+```{r p11}
+train.control <- trainControl(method = "cv", number=5)
+datax = data_final %>% dplyr::select(-c(Pos_cat, International))
+rsq = c()
+rmse = c()nmax = 60
+regfit_full <- regsubsets(logsal ~ .^2, data = datax, nvmax = nmax, method = "backward")
+
+for (i in 1:nmax){
+  cols = names(which(summary(regfit_full)$which[i,-1] == TRUE))
+  predictors <- paste(cols, collapse = "+")
+  form = as.formula(paste0("logsal ~", predictors))
+  cv.mod = train(form, data=datax, method="lm", trControl = train.control)
+  rsq = c(rsq, cv.mod$results$Rsquared)
+  rmse = c(rmse, cv.mod$results$RMSE)
+}
+
+
+plt_data = data.frame(n_predictors=1:nmax, RMSE=rmse, Rsq = rsq)
+rmse_plt = plt_data %>% ggplot(aes(x=n_predictors, y=RMSE)) + geom_line() + ggtitle("C-V based sqrt(MSE) for a model with n predictors")
+rsq_plt = plt_data %>% ggplot(aes(x=n_predictors, y=Rsq)) + geom_line() + ggtitle("C-V based R-squared for a model with n predictors")
+grid.arrange(rmse_plt, rsq_plt, nrow=2)
+
+```
+
 ### Test for Interaction
 
 ### Test for Higher Order
