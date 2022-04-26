@@ -209,24 +209,32 @@ test_outlier_meanshift(trimmed_aic, which.max(cooks.distance(trimmed_aic)))
 data_final <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
 ```
 
-A problem thus far has been the heteroscedasticity in the residual plot, along with the downward linear trend of the residuals. We will attempt to use weighted least squares to help resolve this. We looked at a couple different ways of doing this. First we plotted the standardized residual against each of the predictors, and the inverse of each of the predictors, to see if the variance in residual was a function of any of the individual predictors. There was no clear relationship with any predictor, however. We ended up using the HC3 method, and computing the weights as a function of the OLS residuals and the leverages.
+A problem thus far has been the heteroscedasticity in the residual plot, along with the downward linear trend of the residuals. We will attempt to use weighted least squares to help resolve this. We looked at a couple different ways of doing this. First we plotted the standardized residual against each of the predictors, and the inverse of each of the predictors, to see if the variance in residual was a function of any of the individual predictors.
+
+```{r p9}
+ols_model = trimmed_aic
+std_resid = rstandard(ols_model)
+
+resid_vs_x = data_final %>% mutate(rs=std_resid) %>% gather(-rs, key = "some_var_name", value = "some_value_name") %>% ggplot(aes(x = some_value_name, y = rs)) + geom_point() + facet_wrap(~ some_var_name, scales = "free") + ggtitle("Standardized residuals vs predictors") + xlab("predictors")
+resid_vs_x_inv = data_final %>% mutate(rs=std_resid) %>% dplyr::select(-Multiteam, -Pos_cat, -International) %>% gather(-rs, key = "some_var_name", value = "some_value_name") %>% ggplot(aes(x = 1/ some_value_name, y = rs)) + geom_point() + facet_wrap(~ some_var_name, scales = "free") + ggtitle("Standardized residuals vs 1/X") + xlab("1/x")
+resid_vs_x
+resid_vs_x_inv
+```
+
+There was no clear relationship between the residuals and any predictor, however. We ended up using the HC3 method, and computing the weights as a function of the OLS residuals and the leverages.
 
 
 ```{r p10}
 ols_model = trimmed_aic
 std_resid = rstandard(ols_model)
 
-
-resid_vs_x = data_final %>% mutate(rs=std_resid) %>% gather(-rs, key = "some_var_name", value = "some_value_name") %>% ggplot(aes(x = some_value_name, y = rs)) + geom_point() + facet_wrap(~ some_var_name, scales = "free") + ggtitle("Standardized residuals vs predictors") + xlab("predictors")
-resid_vs_x_inv = data_final %>% mutate(rs=std_resid) %>% dplyr::select(-Multiteam, -Pos_cat, -International) %>% gather(-rs, key = "some_var_name", value = "some_value_name") %>% ggplot(aes(x = 1/ some_value_name, y = rs)) + geom_point() + facet_wrap(~ some_var_name, scales = "free") + ggtitle("Standardized residuals vs 1/X") + xlab("1/x")
-resid_vs_x
-resid_vs_x_inv
-
 sigmahat_2 = summary(ols_model)$sigma^2
-weights = (resid(trimmed_aic))^2 / ((1 - leverage(trimmed_aic))^2)
+weights = (resid(ols_model))^2 / ((1 - leverage(ols_model))^2)
 
-ols_resid_with_weights = data.frame(resid=trimmed_aic$residuals , fitted_logsal=trimmed_aic$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("OLS Residual plot with weights")
+ols_resid_with_weights = data.frame(resid=ols_model$residuals , fitted_logsal=ols_model$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("OLS Residual plot with weights")
+
 wls_model = lm(logsal ~ Age + pts_adj + Multiteam + dws_adj + Pos_cat, data=data_final, weights=weights)
+
 wls_resids = data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("WLS Residual plot")
 wls_resids_with_weights = data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("WLS Residual plot with weights")
 ols_resid_with_weights
