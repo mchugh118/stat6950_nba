@@ -64,10 +64,12 @@ direction = "both", k = 2)
 
 From this initial analysis, some important predictors appear to be Age, DBPM, Conference, Minutes, and Usage. We can see that the 'conference' factor is really picking up on players that appeared on multiple teams. Sometimes these are good players who have been traded, but often these players are end of the bench guys that sign cheap, short term contracts. This having a relationship with salary would make sense. We will create a new variable that just flags players that appeared on multiple teams within the season.
 
-We can also see that Position has some redundancy and maybe too much granularity; we will clean this up by grouping into "Guards", "Wings", and "Bigs":
+We can also see that Position has some redundancy and maybe too much granularity; we will clean this up by grouping into "Guards", "Wings", and "Bigs". From the graph it is unclear if there is a significant relationship between the refined position predictor and log(salary).
 
 ```{r p2b}
-pos_box = data %>% ggplot(aes(x = Pos, y = log(SALARY))) + geom_boxplot()
+pos_box = data %>% ggplot(aes(x = Pos, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
+pos_cat_box = data %>% ggplot(aes(x = Pos_cat, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
+grid.arrange(pos_box, pos_cat_box, nrow = 1)
 ```
 
 We'll look at some diagnostic plots for these models to see where we're at:
@@ -135,7 +137,7 @@ show_diagnostics(trimmed_aic)
 ```
 
 
-There's a case with a large cooks distance; we'll formally test if this is an outlier:
+There's a case with a large cooks distance; we'll use a t-test for a mean shift to formally test if this is an outlier:
 ```{r p7}
 test_outlier_meanshift <- function(model, ind){
   p = length(coef(model))

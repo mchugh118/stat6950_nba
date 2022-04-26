@@ -5,6 +5,8 @@ date: "4/26/2022"
 output:
   html_document:
     df_print: paged
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -25,7 +27,22 @@ library(corrplot)
 
 ## Introduction
 
+Due to the small nature of our dataset, we will build a model using all available data first, while attempting to be careful to avoid overfitting, and then formally evaluate it using cross validation at the end of our analysis.
+
 ## Variable Selection
+
+```{r}
+data_init <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
+data <- subset(data_init, select = -c(TRB., WS, VORP, DWS, BLK., STL., FTr, GS, OWS, ORB., Place_of_Birth,
+                                      Ht, Pos, College, SALARY, Player, Birth.Date, Tm, Multiteam))
+data_regressors <- data_init %>% dplyr::select(logsal, Age, G, GS, gs_adj, MP, PER, X3PAr, FTr, ftr_adj, ORB., orb_adj, DRB., TRB., AST., STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, OWS, ows_adj, DWS, dws_adj, WS.48, OBPM, DBPM, VORP, vorp_adj, Pos, Height, PTS, pts_adj, TS., International, Conference)
+attach(data)
+# Pos <- as.factor(Pos)
+# International <- as.factor(International)
+# Conference <- as.factor(Conference)
+# Multiteam <- as.factor(Multiteam)  # This is causing trouble. I temporarily removed it.
+# Pos_cat <- as.factor(Pos_cat)
+```
 
 Our data comes from four different datasets. We used three of Riguang Wen's [datasets](https://figshare.com/articles/dataset/NBA_data/5414170) from figshare.com -- \texttt{players cv}, \texttt{players salary}, and \texttt{players stat}. We also used a [dataset](https://zenodo.org/record/3750329#.YkT6YW7MJAe) called \texttt{NBA RS 2020-1950 Stats} uploaded to zenodo.org by Pablo Gomez and Sandra Giral. From these datasets, we considered the following variables.
 
@@ -84,17 +101,7 @@ We also noticed that many of the covariates had skewed distributions, or did not
 
 Below we used VORP as an example; we can see the distribution of VORP and its plot against log(salary) pre and post transformation:
 
-```{r}
-data_init <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
-data <- subset(data_init, select = -c(TRB., WS, VORP, DWS, BLK., STL., FTr, GS, OWS, ORB., Place_of_Birth,
-                                      Ht, Pos, College, SALARY, Player, Birth.Date, Tm, Multiteam))
-attach(data)
-# Pos <- as.factor(Pos)
-# International <- as.factor(International)
-# Conference <- as.factor(Conference)
-# Multiteam <- as.factor(Multiteam)  # This is causing trouble. I temporarily removed it.
-# Pos_cat <- as.factor(Pos_cat)
-
+```{r p0, echo=F, warning=F, message=F}
 vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
 vorp_scatter = data_init %>% ggplot(aes(x=VORP)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of VORP vs. log salary")
 adj_vorp_hist = data_init %>% ggplot(aes(x=vorp_adj)) + geom_histogram() + ggtitle("Histogram of transformed VORP")
@@ -102,7 +109,9 @@ adj_vorp_scatter = data_init %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logs
 grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 ```
 
-Once our predictors are appropriately transformed, we consider all pairwise correlations between covariates as an inital search for possibly collinearity. 
+It's not perfect, but the transformed variable appears to be much more appropriate for a linear model than the raw variable.
+
+Once our predictors are appropriately transformed, we consider all pairwise correlations between covariates as an initial search for possibly collinearity. 
 
 ```{r}
 corrplot(cor(data[sapply(data, is.numeric)]))
@@ -112,17 +121,57 @@ corrplot(cor(data[sapply(data, is.numeric)]))
 
 Four pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that \texttt{PTS} and \texttt{MP} have a correlation coefficient of $0.903$, \texttt{ORtg} and \texttt{TS.} have a correlation coefficient of $0.888$, \texttt{WS.48} and \texttt{PER} have a correlation coefficient of $0.864$, and finally \texttt{DBPM} and \texttt{DRtg} have a correlation coefficient of $-0.760$. 
 
-### Variance Inflation Factors
-```{r}
-full = lm(logsal ~ ., data = data)
-vif(full)[,3]
-#full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
+We will start by looking at a full model with all possible predictors. We observe that in this case, Age, DBPM, VORP, and Multi-team affiliation have very significant relationships with log of salary, even after accounting for the other predictors. Other variables that have moderately significant relationships with salary even after accounting for the other predictors are OWS, DWS, G, and Position.
+```{r p1b}
+
+#all_models = regsubsets(SALARY ~ ., force.in = 1, data = data_regressors, nbest = max(choose(n_predictors, 0:n_predictors)), really.big = T, nvmax = 13)
+null = lm(logsal ~ 1, data = data_regressors)
+full = lm(logsal ~ ., data = data_regressors)
+summary(full)
+
 ```
+
+We'll next run a stepwise model search using both AIC and BIC to provide another starting point:
+
+```{r p2, message=F, results='hide'}
+bic = log(nrow(data_regressors))
+stepbic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
+direction = "both", k = bic)
+stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
+direction = "both", k = 2)
+```
+
+```{r p4b}
+print(stepaic_model$call)
+print(stepbic_model$call)
+```
+
+From this initial analysis, some important predictors appear to be Age, DBPM, Conference, Games, and Points. We can see that the 'conference' factor is really picking up on players that appeared on multiple teams. Sometimes these are good players who have been traded, but often these players are end of the bench guys that sign cheap, short term contracts. This having a relationship with salary would make sense. We created in our preprocessing script a new variable that just flags players that appeared on multiple teams within the season.
+
+We can also see that Position has some redundancy and maybe too much granularity; for example "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when functionally they are the same. We cleaned this up by grouping into "Guards", "Wings", and "Bigs". From the graph it is unclear if there is a significant relationship between the refined position predictor and log(salary).
+
+```{r p2b}
+pos_box = data_init %>% ggplot(aes(x = Pos, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
+pos_cat_box = data_init %>% ggplot(aes(x = Pos_cat, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
+grid.arrange(pos_box, pos_cat_box, nrow = 1)
+```
+
+We'll look at some diagnostic plots for these models to see where we're at:
+
+```{r p3}
+stepaic_resid_plot <- data.frame(resid=stepaic_model$residuals, fitted_logsal=stepaic_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise AIC model residual plot")
+stepbic_resid_plot <- data.frame(resid=stepbic_model$residuals , fitted_logsal=stepbic_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise BIC model residual plot")
+
+grid.arrange(stepaic_resid_plot, stepbic_resid_plot, nrow = 1)
+```
+
+
+We can see that there are some problems with these residual plots. The densest area of both plots appears to be following a downward trend, and the variance is not constant across all fitted values, i.e., these are not null plots. The models need improvement. It is also noteworthy that despite AIC including several more predictors, the residual plots are very similar.
 
 ### Added Variable Plots
 
 ### Stepwise Regression Models
-```{r}
+```{r, results='hide'}
 
 null = lm(logsal ~ 1, data = data)
 full = lm(logsal ~ ., data = data)
@@ -135,13 +184,96 @@ stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full)
 direction = "both", k = 2)
 ```
 
+
+We will build some basic models on the data with extraneous predictors removed, to get an idea of what predictors are still important:
+```{r p4c, results='hide'}
+data_trimmed <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
+trimmed_null = lm(logsal ~ 1, data = data_trimmed)
+trimmed_full = lm(logsal ~ ., data = data_trimmed)
+corrplot(cor(data_trimmed[sapply(data_trimmed, is.numeric)]), method="number")
+trimmed_aic <- stepAIC(object = trimmed_null, scope = list(lower = trimmed_null, upper = trimmed_full),
+direction = "both", k = 2)
+```
+
+```{r p4d}
+summary(trimmed_full)
+print(trimmed_aic$call)
+```
+
 ## Diagnostics
 
-### Leverage Points
+From this point, we can see that adjusted VORP, adjusted points, Age, G, and Multiteam are the most important predictors, with many others appearing to be useful. We'll look at residuals of a basic model and see where we're at:
 
-### Cook's Distances
+```{r p5}
+trimmed_resid_plot <- data.frame(resid=trimmed_aic$residuals , fitted_logsal=trimmed_aic$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise AIC model residual plot")
+trimmed_resid_plot
+```
+
+The residual cloud is similar to those before we cut unnecessary predictors.
+
+### Variance Inflation Factors
+
+
+In our EDA, we also noted that there is some heavy multicollinearity between predictors. We looked at the correlations between predictors, as well as VIFs, and we will try and subset the data to remove variables that are heavily correlated. Also, for variables that were transformed, we left in the raw and transformed columns in our first models. 
+```{r}
+full = lm(logsal ~ ., data = data_trimmed)
+vif(full)[,3]
+#full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
+```
+
+### Leverage Points and Cook's Distances
+
+Now, we'll look at some of the highest leverage cases.
+
+```{r p6}
+show_diagnostics <- function(model){
+  x = model.matrix(model)
+  h = x %*% solve(t(x) %*% x) %*% t(x)
+  leverages = diag(h)
+  lev_resid_plot <- data.frame(resid=model$residuals , fitted_logsal=model$fitted.values, leverage=leverages) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(size=leverages, color=leverages)) + ggtitle("Residual plot with leverages")
+  cooks = cooks.distance(model)
+  cook_resid_plot <- data.frame(resid=model$residuals , fitted_logsal=model$fitted.values, cook_distance=cooks) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(size=cook_distance, color=cook_distance)) + ggtitle("Residual plot with cooks distance")
+  print(lev_resid_plot)
+  print(cook_resid_plot)
+}
+
+show_diagnostics(trimmed_aic)
+
+```
 
 ### Outliers
+
+
+There's an outlying case with a large leverage and cooks distance; we'll use a t-test for a mean shift to formally test if this is an outlier:
+```{r p7}
+test_outlier_meanshift <- function(model, ind){
+  p = length(coef(model))
+  n = nrow(model.matrix(model))
+  ri = rstandard(model)[ind]
+  t_stat = ri * sqrt(((n - p - 1) / (n - p - (ri ^ 2))))
+  pval = pt(t_stat, n - p - 1)
+  return (pval)
+}
+
+test_outlier_meanshift(trimmed_aic, which.max(cooks.distance(trimmed_aic)))
+
+```
+
+We notice that the p-value for a mean shift for this case is small. Looking at the data for this particular observation, we see that it is an outlier on many levels - this player had 2 games played, 6 minutes, a wildly high PER and Usage rate, 0 for many counting stats (Assists, steals, etc.), and a very small salary of $30000. Many of these stats are unstable due to the very small number of minutes played. Also, this player is Thanasis Antetokounmpo, who is a unique case because many people consider him to be a non-NBA level player, who only got into the league because his brother Giannis is one of the best players in the world. Thus, we feel he is not a useful data point, and are comfortable removing him from the dataset. We refit a basic model without him.
+
+```{r p8, results='hide'}
+data <- data_init %>% filter(Player != "Thanasis Antetokounmpo")
+
+data_trimmed <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
+trimmed_null = lm(logsal ~ 1, data = data_trimmed)
+trimmed_full = lm(logsal ~ ., data = data_trimmed)
+vif(trimmed_full)
+summary(trimmed_full)
+trimmed_aic <- stepAIC(object = trimmed_null, scope = list(lower = trimmed_null, upper = trimmed_full),
+direction = "both", k = 2)
+show_diagnostics(trimmed_aic)
+
+```
 
 ## Model Fitting
 
