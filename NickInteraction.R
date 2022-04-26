@@ -66,3 +66,52 @@ mod30 <- lm(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:
 anova(mod15, mod20, test = "F")
 anova(mod20, mod25, test = "F")
 anova(mod25, mod30, test = "F")
+
+
+mod <- mod20
+
+
+# 6-fold cross-validation
+set.seed(1396)
+ctrl <- trainControl(method = "cv", number = 6)
+
+model15 <- train(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
+                   DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. + DRB.:Multiteam +
+                   stl_adj + stl_adj:DBPM + ORtg:dws_adj + dws_adj + ORtg:Pos_cat + Pos_cat + ows_adj + OBPM +
+                   ows_adj:OBPM + Multiteam:dws_adj,
+                 data = data,
+                 method = "lm", 
+                 trControl = ctrl)
+
+model20 <- train(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
+                   DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. + DRB.:Multiteam +
+                   stl_adj + stl_adj:DBPM + ORtg:dws_adj + dws_adj + ORtg:Pos_cat + Pos_cat + ows_adj + OBPM +
+                   ows_adj:OBPM + Multiteam:dws_adj + orb_adj + blk_adj + PER:Multiteam + X3PAr + X3PAr:Multiteam +
+                   OBPM:Multiteam,
+                 data = data,
+                 method = "lm", 
+                 trControl = ctrl)
+
+model25 <- train(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
+                   DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. + DRB.:Multiteam +
+                   stl_adj + stl_adj:DBPM + ORtg:dws_adj + dws_adj + ORtg:Pos_cat + Pos_cat + ows_adj + OBPM +
+                   ows_adj:OBPM + Multiteam:dws_adj + orb_adj + blk_adj + PER:Multiteam + X3PAr + X3PAr:Multiteam +
+                   OBPM:Multiteam + gs_adj + gs_adj:orb_adj + PER:dws_adj + PER:Pos_cat,
+                 data = data,
+                 method = "lm", 
+                 trControl = ctrl)
+
+model30 <- train(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
+                   DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. + DRB.:Multiteam +
+                   stl_adj + stl_adj:DBPM + ORtg:dws_adj + dws_adj + ORtg:Pos_cat + Pos_cat + ows_adj + OBPM +
+                   ows_adj:OBPM + Multiteam:dws_adj + orb_adj + blk_adj + PER:Multiteam + X3PAr + X3PAr:Multiteam +
+                   OBPM:Multiteam + gs_adj + gs_adj:orb_adj + PER:dws_adj + PER:Pos_cat + AST. + MP:Multiteam +
+                   ftr_adj:ORtg + AST.:Multiteam,
+                 data = data,
+                 method = "lm", 
+                 trControl = ctrl)
+
+print(model15)
+print(model20)
+print(model25)
+print(model30)
