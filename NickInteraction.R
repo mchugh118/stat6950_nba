@@ -33,7 +33,14 @@ abline(v = 30)
 plot(regfit_full, scale = "adjr2")
 plot(regfit_full, scale = "bic")
 plot(regfit_full, scale = "Cp")
-coef(regfit_full, 30)
+coef(regfit_full, 10)
+
+mod10 <- lm(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
+              DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. + DRB.:Multiteam +
+              stl_adj + stl_adj:DBPM + ORtg:dws_adj + dws_adj + ORtg:Pos_cat + Pos_cat + ows_adj + OBPM +
+              ows_adj:OBPM + Multiteam:dws_adj,
+            # weights = mod15wt,
+            data = data)
 
 mod15 <- lm(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
             DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. + DRB.:Multiteam +
@@ -67,8 +74,15 @@ mod30 <- lm(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:
             weights = mod30wt,
             data = data)
 
-anova(mod15, mod20, test = "F")
-anova(mod20, mod25, test = "F")
+mod_new <- lm(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
+                     DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. +
+                     stl_adj + stl_adj:DBPM + ORtg:dws_adj + dws_adj + ORtg:Pos_cat + Pos_cat + ows_adj + OBPM +
+                     ows_adj:OBPM + orb_adj + blk_adj + X3PAr,
+              # weights = mod20wt,
+              data = data)
+
+anova(mod15, mod_new, test = "F")
+anova(mod20, mod_new, test = "F")
 anova(mod25, mod30, test = "F")
 
 
@@ -119,7 +133,26 @@ model30 <- train(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER
                  # weights = mod30wt,
                  trControl = ctrl)
 
+model_new <- train(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
+                   DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. +
+                   stl_adj + stl_adj:DBPM + ORtg:dws_adj + dws_adj + ORtg:Pos_cat + Pos_cat + ows_adj + OBPM +
+                   ows_adj:OBPM + orb_adj + blk_adj + X3PAr,
+                 data = data,
+                 method = "lm", 
+                 # weights = mod20wt,
+                 trControl = ctrl)
+
 print(model15)
 print(model20)
 print(model25)
 print(model30)
+print(model_new)
+
+regfit_20 <- regsubsets(logsal ~ vorp_adj + Multiteam + Age + ORtg + Age:ORtg + G + PER + G:PER + MP + MP:PER + 
+                          DBPM + PER:DBPM + ftr_adj + USG. + Height + ftr_adj:USG. + ftr_adj:Height + DRB. + DRB.:Multiteam +
+                          stl_adj + stl_adj:DBPM + ORtg:dws_adj + dws_adj + ORtg:Pos_cat + Pos_cat + ows_adj + OBPM +
+                          ows_adj:OBPM + Multiteam:dws_adj + orb_adj + blk_adj + PER:Multiteam + X3PAr + X3PAr:Multiteam +
+                          OBPM:Multiteam,
+                        data = data, nvmax = 1:50, method = "backward")
+reg_summary <- summary(regfit_20)
+names(reg_summary)
