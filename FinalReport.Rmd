@@ -12,7 +12,6 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-
 # Loading Libraries
 library(tidyverse)
 library(leaps)
@@ -25,6 +24,7 @@ library(readr)
 library(corrplot)
 library(sur)
 library(caret)
+library(plot.matrix)
 ```
 
 ## Introduction
@@ -39,36 +39,39 @@ We are modeling based on the 2015-16 NBA season. We know salary is known before 
 
 A description of the data sources and variables can be found in the previously submitted EDA portion of the project. We proceeded to filter out players who were below the league minimum in salary, as they were exclusively players signed to short term (i.e., 10-day) contracts with wildly volatile data.
 
-From our EDA, we concluded that a log transformation of the response variable, salary, would be appropriate based on the skewed distribution.
+From our EDA, we concluded that a log transformation of the response variable, \texttt{salary}, would be appropriate based on its skewed distribution.
 
-We also noticed that many of the covariates had skewed distributions, or did not have linear marginal relationships with the response log(salary). We attempted to make these variables approximately normally distirbutied, with an approximately linear marginal relationship with the response. We experimented with log, square root, and squaring transformations, and ended up considering the following transformations in our model:
+We also noticed that many of the covariates had skewed distributions, or did not have linear marginal relationships with the response variable \texttt{log(salary)}. We attempted to make these variables approximately normally distirbutied with an approximately linear marginal relationship with the response. We experimented with log, square root, and squaring transformations. In the end, we consider the following transformations in our model:
 
-* VORP: We min/max normalized this between 0 and 1 to eliminate negative values, and then took the log
-* OWS: We min/max normalized this between 0 and 1 to eliminate negative values, and then took the log
-* DWS: Square root
-* PTS: Square root
-* FTr: Square root
-* BLK: log
-* STL: log
-* GS: log
-* ORB: log
+* VORP: A min/max normalization between 0 and 1 to eliminate negative values; then a log transformation
+* OWS: A min/max normalization between 0 and 1 to eliminate negative values; then a log transformation
+* DWS: Square root transformation
+* PTS: Square root transformation
+* FTr: Square root transformation
+* BLK: Log transformation
+* STL: Log transformation
+* GS: Log transformation
+* ORB: Log transformation
 
 ```{r, echo=F}
 data_init <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
-data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos, Height, pts_adj, TS., International, Conference)
+data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, 
+                                    orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., 
+                                    ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, 
+                                    vorp_adj, Pos, Height, pts_adj, TS., International, 
+                                    Conference)
 attach(data)
 ```
 
-
-We can also see that Position has some redundancy and maybe too much granularity; for example "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when functionally they are the same. We cleaned this up by grouping into "Guards", "Wings", and "Bigs". From the graph it is unclear if there is a significant relationship between the refined position predictor and log(salary).
+We can also see that \texttt{Pos} has some redundancy and maybe too much granularity. For example, "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when they are functionally the same. We cleaned this up by grouping players into "Guards", "Wings", and "Bigs" according to \texttt{Pos}. From the graph, it is unclear if there is a significant relationship between the refined position predictor \text{Pos_cat} and \text{log(salary)}.
 
 ```{r p2b}
-pos_box = data_init %>% ggplot(aes(x = Pos, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
-pos_cat_box = data_init %>% ggplot(aes(x = Pos_cat, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
+pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
+pos_cat_box = data_init %>% ggplot(aes(x = Pos_cat, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
 grid.arrange(pos_box, pos_cat_box, nrow = 1)
 ```
 
-Below we used VORP as an example; we can see the distribution of VORP and its plot against log(salary) pre and post transformation:
+We use \texttt{VORP} as an example below. We see the distribution of \texttt{VORP} and its plot against \texttt{log(salary)} both pre- and post-transformation:
 
 ```{r p0, echo=F, warning=F, message=F}
 vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
@@ -78,72 +81,164 @@ adj_vorp_scatter = data_init %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logs
 grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 ```
 
-
-
-It's not perfect, but the transformed variable appears to be much more appropriate for a linear model than the raw variable. Once our predictors are appropriately transformed, we consider all pairwise correlations between covariates as an initial search for possibly collinearity. 
-
+Though not perfect, the transformed variable appears to be much more appropriate for a linear model than the raw variable. Once our predictors are appropriately transformed, we consider all pairwise correlations between continuous covariates as an initial search for possibly collinearity. 
 
 ## Variable Selection
 
+Three pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that \texttt{pts_adj} and \texttt{MP} have a correlation coefficient of $0.947$, \texttt{ORtg} and \texttt{TS.} have a correlation coefficient of $0.888$, and finally \texttt{WS.48} and \texttt{PER} have a correlation coefficient of $0.864$. To avoid redundancy in the model, we'll remove one predictor in each of the three pairs from the model. The terms' variance inflation factors will guide the decision regarding which predictor to drop. Using GVIF$^\frac{1}{2df}$ will allow the GVIFs to be comparable across dimensions. Thus, we remove \texttt{pts_adj} (8.77 > 6.25), \texttt{TS.} (4.64 > 4.29), and \texttt{WS.48} (8.42 > 7.42).
 
 ```{r}
 corrplot(cor(data[sapply(data, is.numeric)]))
-```
-
-Four pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that \texttt{pts_adj} and \texttt{MP} have a correlation coefficient of $0.947$, \texttt{ORtg} and \texttt{TS.} have a correlation coefficient of $0.888$, \texttt{WS.48} and \texttt{PER} have a correlation coefficient of $0.864$, and finally \texttt{DBPM} and \texttt{DRtg} have a correlation coefficient of $-0.760$. To avoid redundancy in the model, we'll remove one predictor in each of the four pairs from the model. The terms' variance inflation factors will guide the decision regarding which predictor to drop. Using GVIF$^\frac{1}{2df}$ will allow the GVIFs to be comparable across dimensions. Thus, we remove \texttt{pts_adj} (8.77 > 6.25), \texttt{TS.} (4.64 > 4.29), \texttt{WS.48} (8.42 > 7.42), and \texttt{DRtg} (4.29 > 3.55).
-
-```{r}
 full = lm(logsal ~ ., data = data)
-vif(full)[,3]
+#vif(full)[,3]
 data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST.,
-                                    stl_adj, blk_adj, TOV., USG., ORtg, ows_adj, dws_adj,
+                                    stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj,
                                     OBPM, DBPM, vorp_adj, Pos_cat, Height, International,
-                                    Conference)
+                                    Conference, Multiteam)
 ```
 
-We will start by looking at a full model with all remaining predictors. We observe that in this case, Age, MP, vorp_adj, and Multi-team affiliation have very significant relationships with the log of salary, even after accounting for the other predictors. Other variables that have moderately significant relationships with the log of salary even after accounting for the other predictors are G, orb_adj, USG., and ows_adj. 
 
 ### Initial Modeling and Evaluation
 
-We will start by looking at a full model with all possible predictors, as well as a stepwise model search using both AIC and BIC to provide another starting point.
+We will begin by looking at a full model with all remaining predictors and employ stepwise regression methods to find the best model. According to BIC, the stepwise regression model working in both directions returns \texttt{MP}, \texttt{Age}, \texttt{USG.}, \texttt{G}, and \texttt{orb_adj} as predictors. We'll call this Model A. The model using AIC in its variable selection process additionally returns \texttt{AST.}, \texttt{stl_adj}, \texttt{Pos_cat}, \texttt{\texttt{Multiteam}, and \texttt{TOV.}. We'll call this Model B.
 
-**NOTE:** Due to the small nature of our dataset, we will build a model using all available data first, while attempting to be careful to avoid overfitting, and then proceed to formal evaluation techniques such as cross validation later in our analysis.
+<!-- **NOTE:** Due to the small nature of our dataset, we will build a model using all available data first, while attempting to be careful to avoid overfitting, and then proceed to formal evaluation techniques such as cross validation later in our analysis. -->
 
-```{r p1b}
+```{r p2, , message=F, results='hide'}
 
 #all_models = regsubsets(SALARY ~ ., force.in = 1, data = data, nbest = max(choose(n_predictors, 0:n_predictors)), really.big = T, nvmax = 13)
 null = lm(logsal ~ 1, data = data)
 full = lm(logsal ~ ., data = data)
 # summary(full)
-```
 
-```{r p2, message=F, results='hide'}
 bic = log(nrow(data))
 stepbic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
 direction = "both", k = bic)
 stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
 direction = "both", k = 2)
-```
 
-```{r p4b}
 print(stepaic_model$call)
 print(stepbic_model$call)
 ```
 
-From this initial analysis, some important predictors appear to be MP, Age, Conference, USG., and DBPM. We can see that the 'conference' factor is really picking up on players that appeared on multiple teams. Sometimes these are good players who have been traded, but often these players are end of the bench guys that sign cheap, short term contracts. This having a relationship with salary would make sense. We created in our preprocessing script a new variable that just flags players that appeared on multiple teams within the season.
+Interactions of predictors may also be of interest in our model. Intuitively, it would make sense if the effect of offensive rebounds on a player's salary was dependent on the player's position. Therefore, we'll also consider models with interaction terms, but with 26 possible main effects, there are at least $26(25)=650$ possible interaction terms. We'll use the \texttt{regsubsets} function in the \texttt{leaps} package to return the best models of each size, setting a conservative limit of the number of variables in the model to 50.
 
-We'll look at some diagnostic plots for these models to see where we're at:
+```{r}
+regfit_full <- regsubsets(logsal ~ .^2, data = data, nvmax = 50, method = "backward")
+reg_summary <- summary(regfit_full)
+
+par(mfrow = c(1,2))
+plot(reg_summary$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
+bic_min = which.min(reg_summary$bic) # 13
+points(bic_min, reg_summary$bic[bic_min], col = "red", cex = 2, pch = 20)
+abline(v = c(9,19))
+plot(reg_summary$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type = "l")
+abline(v = 13, col="red")
+abline(v = c(9,19))
+```
+
+Of these best models, we see that the model with the smallest BIC is the best model chosen with 13 variables. Though the Adjusted $R^2$ of a model does not necessarily have to increase as more variables are added, we see that in this case, the Adjusted $R^2$ is non-decreasing in the number of variables at least up to 50. Practically, a model with 50 variables is not ideal. There seems to be a point in the Adjusted $R^2$ plot in which the rate of change begins to flatten out that matches well with the point in the BIC plot where the BIC begins to rise again. This point is the best model chosen with 19 variables. Similarly, the best model chosen with 9 variables corresponds to an appropriate lower bound for the number of variables with both a satisfactory BIC and Adjusted $R^2$.
+
+```{r}
+coef(regfit_full, 9)
+coef(regfit_full, 13)
+coef(regfit_full, 19)
+```
+
+The best model chosen with 9 variables, which we'll call Model C, includes the following predictors:
+* MP
+* X3PAr
+* ows_adj
+* Age:DRtg
+* G:ftr_adj
+* blk_adj:TOV.
+* ORtg:DBPM
+* DRtg:vorp_adj
+* dws_adj:ConferenceWest
+
+The best model chosen with 13 variables, Model D, includes the aforementioned 9 in addition to:
+* Age
+* Age:InternationalYes
+* AST.:vorp_adj
+* blk_adj:ows_adj
+
+The best model chosen with 19 variables, Model E, includes the previously listed 13 as well as :
+* ftr_adj
+* DRtg
+* Age:ows_adj
+* G:PER
+* ftr_adj:Pos_catWing
+* orb_adj:Pos_catWing
+
+However, we would like to follow a rule of thumb that if a predictor is involved in an interaction term within a model, the main effect should also be included. Therefore, we'll add terms to each of the above models in order to suffice this rule. Thus, for the five models proposed so far, we examine the predictors involved.
+
+```{r}
+preds <- matrix(double(39*5), nrow = 5)
+colnames(preds) <- c(colnames(data)[2:27],"Age:DRtg","G:ftr_adj","blk_adj:TOV.", "ORtg:DBPM","DRtg:vorp_adj","dws_adj:ConferenceWest", "Age:InternationalYes", "AST.:vorp_adj", "blk_adj:ows_adj", "Age:ows_adj", "G:PER", "ftr_adj:Pos_catWing", "orb_adj:Pos_catWing")
+rownames(preds) <- c("Model A", "Model B", "Model C", "Model D", "Model E")
+preds[1, c(4,1,14,2,8)] <- 1
+preds[2, c(4,1,14,2,8,10,11,22,26,13)] <- 1
+preds[3, c(4,6,17,27:32,1,16,2,7,12,13,15,20,16,21,18,25)] <- 1
+preds[4, c(4,6,17,27:35,1,16,2,7,12,13,15,20,16,21,18,25,1,24,10,21,12,17)] <- 1
+preds[5, c(4,5,6,17,27:39,1,16,2,7,12,13,15,20,16,21,18,25,1,24,10,21,12,17,1,17,7,22,8,22)] <- 1
+
+par(mfrow = c(1,1))
+plot(preds, asp=TRUE, las = 2, col = c("red","green"), xlab="Variables", ylab="Models")
+```
+
+Immediately we can see that all five proposed models use \texttt{Age}, \texttt{G} and \texttt{MP} as predictors. On the other hand, none of the models use \texttt{gs_adj}, \texttt{DRB.}, \texttt{OBPM} or \texttt{Height}.
+
+```{r}
+data <- data_init %>% dplyr::select(logsal, Age, G, MP, PER, X3PAr, ftr_adj, orb_adj, AST.,
+                                    stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj,
+                                    DBPM, vorp_adj, Pos_cat, International,
+                                    Conference, Multiteam)
+
+modA <- stepbic_model
+modB <- stepaic_model
+modC <- lm(logsal ~ Age + G + MP + X3PAr + ftr_adj + blk_adj + TOV. + ORtg + DRtg + ows_adj + dws_adj +
+             OBPM + DBPM + Conference + Multiteam + Age:DRtg + G:ftr_adj + ORtg:DBPM + DRtg:vorp_adj +
+             dws_adj:Conference,
+           data = data)
+modD <- lm(logsal ~ Age + G + MP + X3PAr + ftr_adj + blk_adj + TOV. + ORtg + DRtg + ows_adj + dws_adj +
+             OBPM + DBPM + Conference + Multiteam + Age:DRtg + G:ftr_adj + ORtg:DBPM + DRtg:vorp_adj +
+             dws_adj:Conference + AST. + International + Age:International + AST.:vorp_adj +
+             blk_adj:ows_adj,
+           data = data)
+modE <- lm(logsal ~ Age + G + MP + X3PAr + ftr_adj + blk_adj + TOV. + ORtg + DRtg + ows_adj + dws_adj +
+             OBPM + DBPM + Conference + Multiteam + Age:DRtg + G:ftr_adj + ORtg:DBPM + DRtg:vorp_adj +
+             dws_adj:Conference + AST. + International + Age:International + AST.:vorp_adj +
+             blk_adj:ows_adj + orb_adj + Pos_cat + Age:ows_adj + G:PER + PER + ftr_adj:Pos_cat +
+             orb_adj:Pos_cat,
+           data = data)
+```
+
+We'll fit each of the models and explore the residual plots.
 
 ```{r p3}
-stepaic_resid_plot <- data.frame(resid=stepaic_model$residuals, fitted_logsal=stepaic_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise AIC model residual plot")
-stepbic_resid_plot <- data.frame(resid=stepbic_model$residuals , fitted_logsal=stepbic_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise BIC model residual plot")
+modA_resid_plot <- data.frame(resid=modA$residuals, fitted_logsal=modA$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Model A residual plot")
+modB_resid_plot <- data.frame(resid=modB$residuals, fitted_logsal=modB$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Model B residual plot")
+modC_resid_plot <- data.frame(resid=modC$residuals, fitted_logsal=modC$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Model C residual plot")
+modD_resid_plot <- data.frame(resid=modD$residuals, fitted_logsal=modD$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Model D residual plot")
+modE_resid_plot <- data.frame(resid=modE$residuals, fitted_logsal=modE$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Model E residual plot")
 
-grid.arrange(stepaic_resid_plot, stepbic_resid_plot, nrow = 1)
+grid.arrange(modA_resid_plot, modB_resid_plot, modC_resid_plot, 
+             modD_resid_plot,modE_resid_plot, nrow = 2)
 ```
 
 
-<<<<<<< HEAD
-We can see that these residual plots are a good start; there are some problems, however. The densest area of both plots appears to be following a downward trend, and the variance is not constant across all fitted values, i.e., these are not null plots. The models need improvement. It is also noteworthy that despite the model preferred by AIC including several more predictors than the one preferred by BIC, the residual plots are very similar.
+The residual plots do not appear too problematic. However, a vague downward trend is apparent in each and the variance is not constant across all fitted values. Thus, these are not null plots. Fitting the models using weighted least squares may be of interest in the future.
+
+
+
+
+
+
+
+
+
+
+
 
 ### Added Variable Plots
 
@@ -248,17 +343,6 @@ wls_resids_with_weights
 We notice that the WLS model performs marginally better than the OLS model, and the residual plot is closer to a null plot without any trends. We will use this method going forward.
 
 
-
-### Variance Inflation Factors
-
-
-We can also use VIFs to evaluate redundancy in data:
-
-```{r}
-full = lm(logsal ~ ., data = data_trimmed)
-vif(full)[,3]
-#full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
-```
 
 
 ## Model Fitting
