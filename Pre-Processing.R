@@ -90,7 +90,7 @@ data$gs_adj = log(GS + 1)
 data$ows_adj = log(((OWS - min(OWS))/(max(OWS) - min(OWS))) + .1)
 data$orb_adj = log(ORB. + 1)
 data[which(data$Player == "Joe Johnson"), "SALARY"] = 21894863
-data <- data %>% filter(SALARY > 500000)
+data <- data[data$SALARY >= 500000,]
 
 write.csv(data,"data/PlayerData.csv", row.names = TRUE)
 
