@@ -27,50 +27,15 @@ library(corrplot)
 
 ## Introduction
 
-Due to the small nature of our dataset, we will build a model using all available data first, while attempting to be careful to avoid overfitting, and then formally evaluate it using cross validation at the end of our analysis.
+To recap our proposal, we chose to do an NBA-related project and decided to fit a regression model for salary of NBA players, using statistics and other information about the players as covariates.
 
-## Variable Selection
+Our data includes many seasonal statistics for each player, including both simple stats and advanced metrics. We also have access to other personal information for each player, such as team, position, height, etc.
 
-Our data comes from four different datasets. We used three of Riguang Wen's [datasets](https://figshare.com/articles/dataset/NBA_data/5414170) from figshare.com -- \texttt{players cv}, \texttt{players salary}, and \texttt{players stat}. We also used a [dataset](https://zenodo.org/record/3750329#.YkT6YW7MJAe) called \texttt{NBA RS 2020-1950 Stats} uploaded to zenodo.org by Pablo Gomez and Sandra Giral. From these datasets, we considered the following variables.
+We are modeling based on the 2015-16 NBA season. We know salary is known before the season starts and statistics are created, so it is not a response variable in the traditional sense of a causal effect. We attempt to explore the relationship between salary and the covariates, and aim to prescribe a true mean function, and identify players who may be overperforming or underperforming their contract according to the 2015-16 market; i.e., putting up better or worse statistics than one might expect a player on their salary to do.
 
-| Variable      | Description               | Type          | Source                  |
-|:--------------|:-------------------------:|:-------------:|:-----------------------:|
-| Player        | Name of player            | Character     | \texttt{players stat}   |
-| Age           | Age of player             | Numeric       | \texttt{players stat}   |
-| G             | Games played              | Numeric       | \texttt{players stat}   |
-| GS            | Games started             | Numeric       | \texttt{players stat}   |
-| MP            | Minutes played            | Numeric       | \texttt{players stat}   |
-| PER           | Player efficiency rating  | Numeric       | \texttt{players stat}   |
-| PTS           | Points                    | Numeric       | \texttt{NBA RS 2020-1950 Stats} |
-| X3PAr         | 3PA/FGA                   | Numeric       | \texttt{players stat}   |
-| FTr           | FTA/FGA                   | Numeric       | \texttt{players stat}   |
-| TS            | True shooting percentage  | Numeric       | \texttt{NBA RS 2020-1950 Stats} |
-| ORB           | Offensive rebounds        | Numeric       | \texttt{players stat}   |
-| DRB           | Defensive rebounds        | Numeric       | \texttt{players stat}   |
-| TRB           | Total rebounds            | Numeric       | \texttt{players stat}   |
-| AST           | Assists                   | Numeric       | \texttt{players stat}   |
-| STL           | Steals                    | Numeric       | \texttt{players stat}   |
-| BLK           | Blocks                    | Numeric       | \texttt{players stat}   |
-| TOV           | Turnovers                 | Numeric       | \texttt{players stat}   |
-| USG           | Usage percentage          | Numeric       | \texttt{players stat}   |
-| ORtg          | Offensive rating          | Numeric       | \texttt{players stat}   |
-| DRtg          | Defensive rating          | Numeric       | \texttt{players stat}   |
-| OWS           | Offensive win shares      | Numeric       | \texttt{players stat}   |
-| DWS           | Defensive win shares      | Numeric       | \texttt{players stat}   |
-| WS            | Win shares                | Numeric       | \texttt{players stat}   |
-| WS.48         | Win shares per 48 minutes | Numeric       | \texttt{players stat}   |
-| OBPM          | Offensive box +/-         | Numeric       | \texttt{players stat}   |
-| DBPM          | Defensive box +/-         | Numeric       | \texttt{players stat}   |
-| BPM           | Box +/-                   | Numeric       | \texttt{players stat}   |
-| VORP          | Value over replacement player | Numeric   | \texttt{players stat}   |
-| Pos           | Position                  | Factor        | \texttt{players salary} |
-| Ht            | Height in inches          | Numeric       | \texttt{players salary} |
-| Wt            | Weight in pounds          | Numeric       | \texttt{players salary} |
-| PwrSix        | Power Six College?        | Indicator     | \texttt{players cv}     |
-| International | International Player?     | Indicator     | \texttt{players cv}     |
-| Salary        | Salary in dollars         | Numeric       | \texttt{players salary} |
+## Pre-Modeling
 
-Immediately we can recognize that some variables are functions of others and therefore do not need to be considered. Specifically, \texttt{BPM = OBPM + DBPM}, so there is no need to include \texttt{BPM} in our model. Similarly, \texttt{WS = OWS + DWS} and \texttt{TRB = ORB + DRB}, so we can exclude \texttt{WS} and \texttt{TRB} from consideration if we include \texttt{OWS}, \texttt{DWS}, \texttt{ORB} and \texttt{DRB} in our model. 
+A description of the data sources and variables can be found in the previously submitted EDA portion of the project. We proceeded to filter out players who were below the league minimum in salary, as they were exclusively players signed to short term (i.e., 10-day) contracts with wildly volatile data.
 
 From our EDA, we concluded that a log transformation of the response variable, salary, would be appropriate based on the skewed distribution.
 
@@ -86,7 +51,7 @@ We also noticed that many of the covariates had skewed distributions, or did not
 * GS: log
 * ORB: log
 
-```{r}
+```{r, echo=F}
 data_init <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
 data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos, Height, pts_adj, TS., International, Conference)
 attach(data)
@@ -104,6 +69,8 @@ grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 
 It's not perfect, but the transformed variable appears to be much more appropriate for a linear model than the raw variable.
 
+## Variable Selection
+
 Once our predictors are appropriately transformed, we consider all pairwise correlations between covariates as an initial search for possibly collinearity. 
 
 ```{r}
@@ -114,17 +81,20 @@ corrplot(cor(data[sapply(data, is.numeric)]))
 
 Four pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that \texttt{PTS} and \texttt{MP} have a correlation coefficient of $0.903$, \texttt{ORtg} and \texttt{TS.} have a correlation coefficient of $0.888$, \texttt{WS.48} and \texttt{PER} have a correlation coefficient of $0.864$, and finally \texttt{DBPM} and \texttt{DRtg} have a correlation coefficient of $-0.760$. 
 
-We will start by looking at a full model with all possible predictors. We observe that in this case, Age, DBPM, VORP, and Multi-team affiliation have very significant relationships with log of salary, even after accounting for the other predictors. Other variables that have moderately significant relationships with salary even after accounting for the other predictors are OWS, DWS, G, and Position.
+### Initial Modeling and Evaluation
+
+We will start by looking at a full model with all possible predictors, as well as a stepwise model search using both AIC and BIC to provide another starting point.
+
+**NOTE:** Due to the small nature of our dataset, we will build a model using all available data first, while attempting to be careful to avoid overfitting, and then proceed to formal evaluation techniques such as cross validation later in our analysis.
+
 ```{r p1b}
 
 #all_models = regsubsets(SALARY ~ ., force.in = 1, data = data, nbest = max(choose(n_predictors, 0:n_predictors)), really.big = T, nvmax = 13)
 null = lm(logsal ~ 1, data = data)
 full = lm(logsal ~ ., data = data)
-summary(full)
+# summary(full)
 
 ```
-
-We'll next run a stepwise model search using both AIC and BIC to provide another starting point:
 
 ```{r p2, message=F, results='hide'}
 bic = log(nrow(data))
@@ -159,48 +129,27 @@ grid.arrange(stepaic_resid_plot, stepbic_resid_plot, nrow = 1)
 ```
 
 
-We can see that there are some problems with these residual plots. The densest area of both plots appears to be following a downward trend, and the variance is not constant across all fitted values, i.e., these are not null plots. The models need improvement. It is also noteworthy that despite AIC including several more predictors, the residual plots are very similar.
+We can see that these residual plots are a good start; there are some problems, however. The densest area of both plots appears to be following a downward trend, and the variance is not constant across all fitted values, i.e., these are not null plots. The models need improvement. It is also noteworthy that despite the model preferred by AIC including several more predictors than the one preferred by BIC, the residual plots are very similar.
 
 ### Added Variable Plots
 
-### Stepwise Regression Models
-```{r, results='hide'}
-
-null = lm(logsal ~ 1, data = data)
-full = lm(logsal ~ ., data = data)
-summary(full)
-
-bic = log(nrow(data))
-stepbic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
-direction = "both", k = bic)
-stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
-direction = "both", k = 2)
-```
 
 
-We will build some basic models on the data after these adjustments, to get an idea of what predictors are still important:
+After making the adjustments to a few of the predictor variables described above, we continue the iterative process of exploratory model building.
 ```{r p4c, results='hide'}
 data_trimmed <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
 trimmed_null = lm(logsal ~ 1, data = data_trimmed)
 trimmed_full = lm(logsal ~ ., data = data_trimmed)
-corrplot(cor(data_trimmed[sapply(data_trimmed, is.numeric)]), method="number")
+#corrplot(cor(data_trimmed[sapply(data_trimmed, is.numeric)]), method="number")
 trimmed_aic <- stepAIC(object = trimmed_null, scope = list(lower = trimmed_null, upper = trimmed_full),
 direction = "both", k = 2)
-```
-
-```{r p4d}
 summary(trimmed_full)
 print(trimmed_aic$call)
+trimmed_resid_plot <- data.frame(resid=trimmed_aic$residuals , fitted_logsal=trimmed_aic$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise AIC model residual plot")
+# trimmed_resid_plot
 ```
 
 ## Diagnostics
-
-From this point, we can see that adjusted VORP, adjusted points, Age, G, and Multiteam are the most important predictors, with many others appearing to be useful. We'll look at residuals of a basic model and see where we're at:
-
-```{r p5}
-trimmed_resid_plot <- data.frame(resid=trimmed_aic$residuals , fitted_logsal=trimmed_aic$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("Stepwise AIC model residual plot")
-trimmed_resid_plot
-```
 
 The residual cloud is similar to those before we cut unnecessary predictors.
 
@@ -268,6 +217,7 @@ full = lm(logsal ~ ., data = data_trimmed)
 vif(full)[,3]
 #full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
 ```
+
 
 ## Model Fitting
 

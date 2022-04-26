@@ -18,8 +18,8 @@ library(ggplot2)
 library(gridExtra)
 library(car)
 library(corrplot)
-
-
+library(sur)
+library(caret)
 ```
 
 
@@ -157,15 +157,56 @@ We notice that the p-value for a mean shift for this case is very small. Looking
 ```{r p8}
 data <- data %>% filter(Player != "Thanasis Antetokounmpo")
 
-data_trimmed <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
-trimmed_null = lm(logsal ~ 1, data = data_trimmed)
-trimmed_full = lm(logsal ~ ., data = data_trimmed)
+data_final <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
+trimmed_null = lm(logsal ~ 1, data = data_final)
+trimmed_full = lm(logsal ~ ., data = data_final)
 vif(trimmed_full)
-corrplot(cor(data_trimmed[sapply(data_trimmed, is.numeric)]), method="number")
 summary(trimmed_full)
 trimmed_aic <- stepAIC(object = trimmed_null, scope = list(lower = trimmed_null, upper = trimmed_full),
 direction = "both", k = 2)
 show_diagnostics(trimmed_aic)
 
+```
+
+
+Based on our analysis thus far, we found a 'baseline' model that appears to have significant predictors. We will start with this:
+```{r p9}
+m1 = lm(logsal ~ Age + pts_adj + Multiteam + dws_adj + Pos_cat + G + ORtg + MP, data=data_final)
+data.frame(resid=m1$residuals , fitted_logsal=m1$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("OLS Residual plot")
+anova(m1)
+summary(m1)
+```
+
+A problem thus far has been the heteroscedasticity. We will attempt to use weighted least squares. We looked at a couple different ways of doing this, such as using HC3. However, we had some concerns about this method, such as the ability to predict future outcomes. Thus, we settled on an OLS 
+
+
+```{r p10}
+ols_model = trimmed_aic
+
+sigmahat_2 = summary(ols_model)$sigma^2
+ols_resids = resid(ols_model)^2
+
+weights = ols_resids
+#weights = sigmahat_2 * (resid(trimmed_aic)^2)
+#weights = (resid(trimmed_aic))^2 / ((1 - leverage(trimmed_aic))^2)
+
+data.frame(resid=trimmed_aic$residuals , fitted_logsal=trimmed_aic$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("OLS Residual plot with weights")
+wls_model = lm(logsal ~ Age + pts_adj + Multiteam + dws_adj + Pos_cat, data=data_final, weights=weights)
+data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("WLS Residual plot")
+data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("WLS Residual plot with weights")
+
+data_final %>% mutate(w=weights) %>% 
+  gather(-w, key = "some_var_name", value = "some_value_name") %>%
+  ggplot(aes(x = some_value_name, y = w)) +
+    geom_point() +
+    facet_wrap(~ some_var_name, scales = "free")
+```
+
+We will use cross validation to evaluate our model:
+
+```{r p11}
+train.control <- trainControl(method = "cv", number=5)
+
+cv.model <- train(logsal ~ ., data=data_final, method = "lmStepAIC", trControl = train.control)
 ```
 
