@@ -57,6 +57,15 @@ data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_
 attach(data)
 ```
 
+
+We can also see that Position has some redundancy and maybe too much granularity; for example "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when functionally they are the same. We cleaned this up by grouping into "Guards", "Wings", and "Bigs". From the graph it is unclear if there is a significant relationship between the refined position predictor and log(salary).
+
+```{r p2b}
+pos_box = data_init %>% ggplot(aes(x = Pos, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
+pos_cat_box = data_init %>% ggplot(aes(x = Pos_cat, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
+grid.arrange(pos_box, pos_cat_box, nrow = 1)
+```
+
 Below we used VORP as an example; we can see the distribution of VORP and its plot against log(salary) pre and post transformation:
 
 ```{r p0, echo=F, warning=F, message=F}
@@ -67,19 +76,30 @@ adj_vorp_scatter = data_init %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logs
 grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 ```
 
-It's not perfect, but the transformed variable appears to be much more appropriate for a linear model than the raw variable.
+
+
+It's not perfect, but the transformed variable appears to be much more appropriate for a linear model than the raw variable. Once our predictors are appropriately transformed, we consider all pairwise correlations between covariates as an initial search for possibly collinearity. 
+
 
 ## Variable Selection
 
-Once our predictors are appropriately transformed, we consider all pairwise correlations between covariates as an initial search for possibly collinearity. 
 
 ```{r}
 corrplot(cor(data[sapply(data, is.numeric)]))
-
-# Which did we remove from here and why?
 ```
 
-Four pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that \texttt{PTS} and \texttt{MP} have a correlation coefficient of $0.903$, \texttt{ORtg} and \texttt{TS.} have a correlation coefficient of $0.888$, \texttt{WS.48} and \texttt{PER} have a correlation coefficient of $0.864$, and finally \texttt{DBPM} and \texttt{DRtg} have a correlation coefficient of $-0.760$. 
+Four pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that \texttt{pts_adj} and \texttt{MP} have a correlation coefficient of $0.947$, \texttt{ORtg} and \texttt{TS.} have a correlation coefficient of $0.888$, \texttt{WS.48} and \texttt{PER} have a correlation coefficient of $0.864$, and finally \texttt{DBPM} and \texttt{DRtg} have a correlation coefficient of $-0.760$. To avoid redundancy in the model, we'll remove one predictor in each of the four pairs from the model. The terms' variance inflation factors will guide the decision regarding which predictor to drop. Using GVIF$^\frac{1}{2df}$ will allow the GVIFs to be comparable across dimensions. Thus, we remove \texttt{pts_adj} (8.77 > 6.25), \texttt{TS.} (4.64 > 4.29), \texttt{WS.48} (8.42 > 7.42), and \texttt{DRtg} (4.29 > 3.55).
+
+```{r}
+full = lm(logsal ~ ., data = data)
+vif(full)[,3]
+data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST.,
+                                    stl_adj, blk_adj, TOV., USG., ORtg, ows_adj, dws_adj,
+                                    OBPM, DBPM, vorp_adj, Pos_cat, Height, International,
+                                    Conference)
+```
+
+We will start by looking at a full model with all remaining predictors. We observe that in this case, Age, MP, vorp_adj, and Multi-team affiliation have very significant relationships with the log of salary, even after accounting for the other predictors. Other variables that have moderately significant relationships with the log of salary even after accounting for the other predictors are G, orb_adj, USG., and ows_adj. 
 
 ### Initial Modeling and Evaluation
 
@@ -93,7 +113,6 @@ We will start by looking at a full model with all possible predictors, as well a
 null = lm(logsal ~ 1, data = data)
 full = lm(logsal ~ ., data = data)
 # summary(full)
-
 ```
 
 ```{r p2, message=F, results='hide'}
@@ -109,15 +128,7 @@ print(stepaic_model$call)
 print(stepbic_model$call)
 ```
 
-From this initial analysis, some important predictors appear to be Age, DBPM, Conference, Games, VORP, and Points. We can see that the 'conference' factor is really picking up on players that appeared on multiple teams. Sometimes these are good players who have been traded, but often these players are end of the bench guys that sign cheap, short term contracts. This having a relationship with salary would make sense. We created in our preprocessing script a new variable that just flags players that appeared on multiple teams within the season.
-
-We can also see that Position has some redundancy and maybe too much granularity; for example "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when functionally they are the same. We cleaned this up by grouping into "Guards", "Wings", and "Bigs". From the graph it is unclear if there is a significant relationship between the refined position predictor and log(salary).
-
-```{r p2b}
-pos_box = data_init %>% ggplot(aes(x = Pos, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
-pos_cat_box = data_init %>% ggplot(aes(x = Pos_cat, y = log(SALARY))) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
-grid.arrange(pos_box, pos_cat_box, nrow = 1)
-```
+From this initial analysis, some important predictors appear to be MP, Age, Conference, USG., and DBPM. We can see that the 'conference' factor is really picking up on players that appeared on multiple teams. Sometimes these are good players who have been traded, but often these players are end of the bench guys that sign cheap, short term contracts. This having a relationship with salary would make sense. We created in our preprocessing script a new variable that just flags players that appeared on multiple teams within the season.
 
 We'll look at some diagnostic plots for these models to see where we're at:
 
@@ -129,6 +140,7 @@ grid.arrange(stepaic_resid_plot, stepbic_resid_plot, nrow = 1)
 ```
 
 
+<<<<<<< HEAD
 We can see that these residual plots are a good start; there are some problems, however. The densest area of both plots appears to be following a downward trend, and the variance is not constant across all fitted values, i.e., these are not null plots. The models need improvement. It is also noteworthy that despite the model preferred by AIC including several more predictors than the one preferred by BIC, the residual plots are very similar.
 
 ### Added Variable Plots
