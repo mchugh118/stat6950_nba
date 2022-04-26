@@ -23,6 +23,7 @@ library(car)
 library(dplyr)
 library(readr)
 library(corrplot)
+library(sur)
 ```
 
 ## Introduction
@@ -206,17 +207,7 @@ test_outlier_meanshift(trimmed_aic, which.max(cooks.distance(trimmed_aic)))
 We notice that the p-value for a mean shift for this case is small. Looking at the data for this particular observation, we see that it is an outlier on many levels - this player had 2 games played, 6 minutes, a wildly high PER and Usage rate, 0 for many counting stats (Assists, steals, etc.), and a very small salary of $30000. Many of these stats are unstable due to the very small number of minutes played. Also, this player is Thanasis Antetokounmpo, who is a unique case because many people consider him to be a non-NBA level player, who only got into the league because his brother Giannis is one of the best players in the world. Thus, we feel he is not a useful data point, and are comfortable removing him from the dataset. We refit a basic model without him.
 
 ```{r p8, results='hide'}
-data <- data_init %>% filter(Player != "Thanasis Antetokounmpo")
-
-data_trimmed <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
-trimmed_null = lm(logsal ~ 1, data = data_trimmed)
-trimmed_full = lm(logsal ~ ., data = data_trimmed)
-vif(trimmed_full)
-summary(trimmed_full)
-trimmed_aic <- stepAIC(object = trimmed_null, scope = list(lower = trimmed_null, upper = trimmed_full),
-direction = "both", k = 2)
-show_diagnostics(trimmed_aic)
-
+data_final <- data %>% mutate(logsal = log(SALARY)) %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
 ```
 
 A problem thus far has been the heteroscedasticity in the residual plot, along with the downward linear trend of the residuals. We will attempt to use weighted least squares to help resolve this. We looked at a couple different ways of doing this. First we plotted the standardized residual against each of the predictors, and the inverse of each of the predictors, to see if the variance in residual was a function of any of the individual predictors. There was no clear relationship with any predictor, however. We ended up using the HC3 method, and computing the weights as a function of the OLS residuals and the leverages.
