@@ -31,6 +31,19 @@ Due to the small nature of our dataset, we will build a model using all availabl
 
 ## Variable Selection
 
+```{r}
+data_init <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
+data <- subset(data_init, select = -c(TRB., WS, VORP, DWS, BLK., STL., FTr, GS, OWS, ORB., Place_of_Birth,
+                                      Ht, Pos, College, SALARY, Player, Birth.Date, Tm, Multiteam))
+data_regressors <- data_init %>% dplyr::select(logsal, Age, G, GS, gs_adj, MP, PER, X3PAr, FTr, ftr_adj, ORB., orb_adj, DRB., TRB., AST., STL., stl_adj, BLK., blk_adj, TOV., USG., ORtg, DRtg, OWS, ows_adj, DWS, dws_adj, WS.48, OBPM, DBPM, VORP, vorp_adj, Pos, Height, PTS, pts_adj, TS., International, Conference)
+attach(data)
+# Pos <- as.factor(Pos)
+# International <- as.factor(International)
+# Conference <- as.factor(Conference)
+# Multiteam <- as.factor(Multiteam)  # This is causing trouble. I temporarily removed it.
+# Pos_cat <- as.factor(Pos_cat)
+```
+
 Our data comes from four different datasets. We used three of Riguang Wen's [datasets](https://figshare.com/articles/dataset/NBA_data/5414170) from figshare.com -- \texttt{players cv}, \texttt{players salary}, and \texttt{players stat}. We also used a [dataset](https://zenodo.org/record/3750329#.YkT6YW7MJAe) called \texttt{NBA RS 2020-1950 Stats} uploaded to zenodo.org by Pablo Gomez and Sandra Giral. From these datasets, we considered the following variables.
 
 | Variable      | Description               | Type          | Source                  |
@@ -86,12 +99,6 @@ We also noticed that many of the covariates had skewed distributions, or did not
 * GS: log
 * ORB: log
 
-```{r}
-data_init <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
-data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos, Height, pts_adj, TS., International, Conference)
-attach(data)
-```
-
 Below we used VORP as an example; we can see the distribution of VORP and its plot against log(salary) pre and post transformation:
 
 ```{r p0, echo=F, warning=F, message=F}
@@ -117,9 +124,9 @@ Four pairs of predictors with noticably large correlations according the the cor
 We will start by looking at a full model with all possible predictors. We observe that in this case, Age, DBPM, VORP, and Multi-team affiliation have very significant relationships with log of salary, even after accounting for the other predictors. Other variables that have moderately significant relationships with salary even after accounting for the other predictors are OWS, DWS, G, and Position.
 ```{r p1b}
 
-#all_models = regsubsets(SALARY ~ ., force.in = 1, data = data, nbest = max(choose(n_predictors, 0:n_predictors)), really.big = T, nvmax = 13)
-null = lm(logsal ~ 1, data = data)
-full = lm(logsal ~ ., data = data)
+#all_models = regsubsets(SALARY ~ ., force.in = 1, data = data_regressors, nbest = max(choose(n_predictors, 0:n_predictors)), really.big = T, nvmax = 13)
+null = lm(logsal ~ 1, data = data_regressors)
+full = lm(logsal ~ ., data = data_regressors)
 summary(full)
 
 ```
@@ -127,7 +134,7 @@ summary(full)
 We'll next run a stepwise model search using both AIC and BIC to provide another starting point:
 
 ```{r p2, message=F, results='hide'}
-bic = log(nrow(data))
+bic = log(nrow(data_regressors))
 stepbic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
 direction = "both", k = bic)
 stepaic_model <- stepAIC(object = null, scope = list(lower = null, upper = full),
@@ -139,7 +146,7 @@ print(stepaic_model$call)
 print(stepbic_model$call)
 ```
 
-From this initial analysis, some important predictors appear to be Age, DBPM, Conference, Games, VORP, and Points. We can see that the 'conference' factor is really picking up on players that appeared on multiple teams. Sometimes these are good players who have been traded, but often these players are end of the bench guys that sign cheap, short term contracts. This having a relationship with salary would make sense. We created in our preprocessing script a new variable that just flags players that appeared on multiple teams within the season.
+From this initial analysis, some important predictors appear to be Age, DBPM, Conference, Games, and Points. We can see that the 'conference' factor is really picking up on players that appeared on multiple teams. Sometimes these are good players who have been traded, but often these players are end of the bench guys that sign cheap, short term contracts. This having a relationship with salary would make sense. We created in our preprocessing script a new variable that just flags players that appeared on multiple teams within the season.
 
 We can also see that Position has some redundancy and maybe too much granularity; for example "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when functionally they are the same. We cleaned this up by grouping into "Guards", "Wings", and "Bigs". From the graph it is unclear if there is a significant relationship between the refined position predictor and log(salary).
 
@@ -178,7 +185,7 @@ direction = "both", k = 2)
 ```
 
 
-We will build some basic models on the data after these adjustments, to get an idea of what predictors are still important:
+We will build some basic models on the data with extraneous predictors removed, to get an idea of what predictors are still important:
 ```{r p4c, results='hide'}
 data_trimmed <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST., stl_adj, blk_adj, TOV., USG., ORtg, DRtg, ows_adj, dws_adj, WS.48, OBPM, DBPM, vorp_adj, Pos_cat, Height, pts_adj, TS., International, Multiteam)
 trimmed_null = lm(logsal ~ 1, data = data_trimmed)
@@ -203,6 +210,16 @@ trimmed_resid_plot
 ```
 
 The residual cloud is similar to those before we cut unnecessary predictors.
+
+### Variance Inflation Factors
+
+
+In our EDA, we also noted that there is some heavy multicollinearity between predictors. We looked at the correlations between predictors, as well as VIFs, and we will try and subset the data to remove variables that are heavily correlated. Also, for variables that were transformed, we left in the raw and transformed columns in our first models. 
+```{r}
+full = lm(logsal ~ ., data = data_trimmed)
+vif(full)[,3]
+#full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
+```
 
 ### Leverage Points and Cook's Distances
 
@@ -256,17 +273,6 @@ trimmed_aic <- stepAIC(object = trimmed_null, scope = list(lower = trimmed_null,
 direction = "both", k = 2)
 show_diagnostics(trimmed_aic)
 
-```
-
-### Variance Inflation Factors
-
-
-We can also use VIFs to evaluate redundancy in data:
-
-```{r}
-full = lm(logsal ~ ., data = data_trimmed)
-vif(full)[,3]
-#full2 = lm(logsal ~ . - WS.48 - PER - ORtg - PTS, data = data) # Sequentially removed highest VIF until next iteration lowered both Adj R2 and Mult R2
 ```
 
 ## Model Fitting
