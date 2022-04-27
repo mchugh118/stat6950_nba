@@ -208,5 +208,22 @@ We notice that the WLS model performs marginally better than the OLS model, and 
 
 
 
+### Contextual Applications
+
+One thing that was of interest to us was using this model to see which players are overperforming and underperforming their salary, based on the model's expectations. We'll look at the largest and smallest residuals, raw and standardized:
+
+```{r p12}
+fmod = modB
+
+und_raw = which.min(resid(fmod))
+cat("Most Underpaid: ", data_init[und_raw, "Player"], ": Expected Salary: ", exp(predict(fmod, newdata=data[und_raw,])), ", Actual Salary: ", data_init[und_raw, "SALARY"], sep="")
+
+ovp_raw = which.max(resid(fmod))
+cat("Most Overpaid: ", data_init[ovp_raw, "Player"], ": Expected Salary: ", exp(predict(fmod, newdata=data[ovp_raw,])), ", Actual Salary: ", data_init[ovp_raw, "SALARY"], sep="")
+
+```
+
+Our model thought Rodney Hood was the league's most underpaid player, and Iman Shumpert was the league's most overpaid player (using both raw and standardized residuals, for both players). Hood's relatively high usage rate, offensive rebounding rate, and assists led to the model expecting him to have a fairly average salary, when he was actually paid towards the low end of the league. Conversely, Shumpert's classification as a guard, low usage rate and assists, and relatively high turnover rate led the model to think he should be paid fairly low, when in reality he was a well-paid player. We imagine that digging into which players were over/underpaid, and whether or not this had a correlation with team success, would be a fun and useful activity with a trustworthy model.
+
 
 
