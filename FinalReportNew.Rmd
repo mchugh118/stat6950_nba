@@ -225,8 +225,6 @@ modE <- lm(logsal ~ Age + G + MP + X3PAr + ftr_adj + blk_adj + TOV. + ORtg + DRt
            data = data)
 ```
 
-We'll fit each of the models and explore the residual plots.
-
 ## Residual Analysis
 
 ```{r p3, echo=FALSE, warning=FALSE, message=FALSE}
