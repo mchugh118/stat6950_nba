@@ -38,7 +38,11 @@ We are modeling based on the 2015-16 NBA season. We know salary is known before 
 
 ## Data Exploration
 
-A description of the data sources and variables can be found in the previously submitted EDA portion of the project. We proceeded to filter out players who were below the league minimum in salary, as they were exclusively players signed to short term (i.e., 10-day) contracts with wildly volatile data. We felt that players on shorter than full season contracts would be worth creating a separate model for in another project.
+Our data comes from four different datasets. We used three of Riguang Wen's [datasets](https://figshare.com/articles/dataset/NBA_data/5414170) from figshare.com -- \texttt{players cv}, \texttt{players salary}, and \texttt{players stat}. We also used a [dataset](https://zenodo.org/record/3750329#.YkT6YW7MJAe) called \texttt{NBA RS 2020-1950 Stats} uploaded to zenodo.org by Pablo Gomez and Sandra Giral.
+
+In addition to player salary, the data available to us included statistics from each player for the season, including basic stats such as games played, points, and steals, as well as advanced stats such as Value Over Replacement Player (VORP), Defensive Box +/- (DBPM), and others. Other information included personal and demographic data related to the players, such as age, height, college attended, birthplace, and other things. A full list of variables can be found in the previously submitted EDA description.
+
+We proceeded to filter out players who were below the league minimum in salary, as they were exclusively players signed to short term (i.e., 10-day) contracts with wildly volatile data. We felt that players on shorter than full season contracts would be worth creating a separate model for in another project.
 
 From our EDA, we concluded that a log transformation of the response variable, salary, would be appropriate based on its skewed distribution.
 
@@ -64,25 +68,13 @@ data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_
 attach(data)
 ```
 
-We can also see that Pos has some redundancy and maybe too much granularity. For example, "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when they are functionally the same. We cleaned this up by grouping players into "Guards", "Wings", and "Bigs" according to Pos. From the graph, it is unclear if there is a significant relationship between the refined position predictor Pos_cat and log(salary).
+We use VORP as an example in the appendix. Figure A1 shows the distribution of VORP and its plot against log(salary) both pre- and post-transformation. Though not perfect, the transformed variable appears to be much more appropriate for a linear model than the raw variable. 
 
-```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
-pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
-pos_cat_box = data_init %>% ggplot(aes(x = Pos_cat, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
-grid.arrange(pos_box, pos_cat_box, nrow = 1)
-```
+We can also see that Pos has some redundancy and maybe too much granularity. For example, "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when they are functionally the same. We cleaned this up by grouping players into "Guards", "Wings", and "Bigs" according to Pos. Figure A2 shows this variable pre- and post-transformation. From the graph, it is unclear if there is a significant relationship between the refined position predictor Pos_cat and log(salary).
 
-We use VORP as an example below. We see the distribution of VORP and its plot against log(salary) both pre- and post-transformation:
+We modified some other categorical variables as well. Over several iterations of model building, we were able to reduce the Team variable to a simple flag, Multiteam. A player appearing with multiple teams over the course of the season had a strong relationship with salary.
 
-```{r p0, echo=FALSE, warning=FALSE, message=FALSE}
-vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
-vorp_scatter = data_init %>% ggplot(aes(x=VORP)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of VORP vs. log salary")
-adj_vorp_hist = data_init %>% ggplot(aes(x=vorp_adj)) + geom_histogram() + ggtitle("Histogram of transformed VORP")
-adj_vorp_scatter = data_init %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of transformed VORP vs. log salary")
-grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
-```
-
-Though not perfect, the transformed variable appears to be much more appropriate for a linear model than the raw variable. Once our predictors are appropriately transformed, we consider all pairwise correlations between continuous covariates as an initial search for possibly collinearity. 
+Once our predictors are appropriately transformed, we considered all pairwise correlations between continuous covariates as an initial search for possibly collinearity, which we will discuss in more detail later.
 
 ## Variable Selection
 
@@ -421,3 +413,23 @@ This p-value is small, but not ridiculously small in the context of a dataset of
 
 ## Conclusion
 
+
+## Appendix
+
+#### Figure A1: Transformation of VORP
+
+```{r p0, echo=FALSE, warning=FALSE, message=FALSE}
+vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
+vorp_scatter = data_init %>% ggplot(aes(x=VORP)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of VORP vs. log salary")
+adj_vorp_hist = data_init %>% ggplot(aes(x=vorp_adj)) + geom_histogram() + ggtitle("Histogram of transformed VORP")
+adj_vorp_scatter = data_init %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logsal)) + ggtitle("Scatterplot of transformed VORP vs. log salary")
+grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
+```
+
+#### Figure A2: Transformation of Pos
+
+```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
+pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
+pos_cat_box = data_init %>% ggplot(aes(x = Pos_cat, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
+grid.arrange(pos_box, pos_cat_box, nrow = 1)
+```
