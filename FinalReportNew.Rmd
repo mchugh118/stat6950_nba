@@ -1,5 +1,5 @@
 ---
-title: "Final Report"
+title: "Modeling NBA Player Salary in 2015-16"
 author: "Nick Mandarano and Patrick McHugh"
 date: "4/26/2022"
 output:
@@ -33,11 +33,11 @@ library(patchwork)
 
 ## Introduction
 
-To recap our proposal, we chose to do an NBA-related project and decided to fit a regression model for salary of NBA players, using statistics and other information about the players as covariates.
+To recap our proposal, we chose to do an NBA-related project and decided to fit a regression model for the salary of NBA players, using statistics and other information about the players as covariates.
 
 Our data includes many seasonal statistics for each player, including both simple stats and advanced metrics. We also have access to other personal information for each player, such as team, position, height, etc.
 
-We are modeling based on the 2015-16 NBA season. We know salary is known before the season starts and statistics are created, so it is not a response variable in the traditional sense of a causal effect. We attempt to explore the relationship between salary and the covariates, and aim to prescribe a true mean function, and identify players who may be overperforming or underperforming their contract according to the 2015-16 market; i.e., putting up better or worse statistics than one might expect a player on their salary to do.
+We are modeling based on the 2015-16 NBA season. We know that salary is known before the season starts and statistics are created, so it is not a response variable in the traditional sense of a causal effect. We attempt to explore the relationship between salary and the covariates, and aim to prescribe a true mean function, and identify players who may be overperforming or underperforming their contract according to the 2015-16 market; i.e., putting up better or worse statistics than one might expect a player on their salary to do.
 
 ## Data Exploration
 
@@ -240,7 +240,7 @@ grid.arrange(modA_resid_plot, modB_resid_plot, modC_resid_plot,
 
 The residual plots do not appear too problematic. However, a vague downward trend is apparent in each and the variance is not constant across all fitted values. Thus, these are not null plots. Fitting the models using weighted least squares may be of interest in the future. One persisting concern is the idea of overfitting the model. In order to evaluate whether any of these models may be victim to overfitting or underfitting, we'll perform 6-fold cross-validation on each model. The number of folds is chosen to be 6 because the data has 366 observations, so the folds will split evenly.
 
-## Model Selection
+## Cross-Validation
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 set.seed(6950)
@@ -464,11 +464,12 @@ Any future advancement of this work should, however, consider the idea of holdin
 
 ## Appendix
 
-\vspace{0.40cm}
+&nbsp;
+&nbsp;
 
 #### Figure A1: Transformed variables; and transformation of VORP  
 
-\vspace{0.35cm}
+&nbsp;
 
 * VORP: A min/max normalization between 0 and 1 to eliminate negative values; then a log transformation
 * OWS: A min/max normalization between 0 and 1 to eliminate negative values; then a log transformation
@@ -493,7 +494,7 @@ grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 
 #### Figure A2: Transformation of Pos  
   
-\vspace{0.35cm}
+&nbsp;
 
 ```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
 pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
@@ -503,7 +504,7 @@ grid.arrange(pos_box, pos_cat_box, nrow = 1)
 
 #### Output A3: Summaries of Models A, C, D, E
 
-\vspace{0.35cm}
+&nbsp;
 
 ```{r, warning=FALSE, message=FALSE}
 summary(modA)
@@ -516,7 +517,7 @@ summary(modE)
 
 #### Figure A4: Predictors used in selected models
 
-\vspace{0.35cm}
+&nbsp;
   
 ```{r warning=F, message=F, echo=F}
 par(mfrow = c(1,1))
@@ -527,7 +528,7 @@ plot(preds, asp=TRUE, las = 2, col = c("red","green"), xlab="", ylab="", main="P
 
 #### Figure A5: Correlation Matrix
 
-\vspace{0.35cm}
+&nbsp;
   
 ```{r warning=F, message=F, echo=F}
 corrplot(cor(data[sapply(data, is.numeric)]))
@@ -535,7 +536,7 @@ corrplot(cor(data[sapply(data, is.numeric)]))
 
 #### Figure A6: Residual plots of final model, including leverage and Cook's distance
 
-\vspace{0.35cm}
+&nbsp;
 
 ```{r a6, warning=F, echo=F, message=F}
 show_diagnostics(modB)
