@@ -3,14 +3,17 @@ title: "Final Report"
 author: "Nick Mandarano and Patrick McHugh"
 date: "4/26/2022"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-editor_options: 
+editor_options:
   chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=70),tidy=TRUE)
+
 
 # Loading Libraries
 library(tidyverse)
@@ -80,7 +83,7 @@ Once our predictors are appropriately transformed, we considered all pairwise co
 
 Three pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that pts_adj and MP have a correlation coefficient of $0.947$, ORtg and TS. have a correlation coefficient of $0.888$, and finally WS.48 and PER have a correlation coefficient of $0.864$. To avoid redundancy in the model, we'll remove one predictor in each of the three pairs from the model. The terms' variance inflation factors will guide the decision regarding which predictor to drop. Using GVIF$^\frac{1}{2df}$ will allow the GVIFs to be comparable across dimensions. Thus, we remove pts_adj (8.77 > 6.25), TS. (4.64 > 4.29), and WS.48 (8.42 > 7.42).
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=6}
 corrplot(cor(data[sapply(data, is.numeric)]))
 full = lm(logsal ~ ., data = data)
 #vif(full)[,3]
@@ -325,7 +328,7 @@ A previously mentioned concern was the vague downward linear trend of the residu
 
 No clear relationship between the residuals and any predictor is observed, so we instead use the HC3 method and compute the weights as a function of the OLS residuals and the leverages.
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=5.5, fig.asp=0.618}
 ols_model = modB
 std_resid = rstandard(ols_model)
 
@@ -340,6 +343,11 @@ wls_resids = data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitt
 wls_resids_with_weights = data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("WLS Residual plot with weights")
 
 ols_resid_with_weights
+```
+
+<br/>
+
+```{r p5y, echo=FALSE, message=FALSE, warning=FALSE, fig.width=5.5, fig.asp=0.618}
 wls_resids_with_weights
 
 
@@ -369,29 +377,40 @@ The estimated coefficient for the Pos_catWing indicator variable also becomes si
 
 Also present in the model are Multiteam and TOV., though neither significant at the 90% level. The estimated coefficient for the Multiteam indicator variables is positive, suggesting players who played for various teams during the 2015-16 NBA season typically had higher salaries. The estimated coefficient for TOV. was negative, confirming the idea that players who turned the ball over more often were paid less, on average.
 
-In all, our model reports an $R^2$ value of 0.5871 and Adjusted $R^2$ value of 0.5742. The 6-fold cross-validation procedure returns an average $R^2$ of 0.5665 on unseen test data, with the smallest root mean squared error and smallest mean absolute error of any of the five proposed models.
-
 ```{r, echo=FALSE, message=FALSE,warning=FALSE}
 summary(modB)
 ```
 
 ### Model Diagnostics
 
-```{r p5z, fig.width=5, fig.asp=0.618}
+In all, our model reports an $R^2$ value of 0.5871 and Adjusted $R^2$ value of 0.5742. The 6-fold cross-validation procedure returns an average $R^2$ of 0.5665 on unseen test data, with the smallest root mean squared error and smallest mean absolute error of any of the five proposed models.
+
+We will also look at the residual plot again, as well as the standardized residual plot:
+
+```{r p5z, fig.width=5, fig.asp=0.618, echo=FALSE}
 resid_df = data.frame(raw_residuals=modB$residuals , fitted_logsal=modB$fitted.values, std_residuals=rstandard(modB))
 
 raw_resid_plt <- resid_df %>%  ggplot(aes(x=fitted_logsal, y=raw_residuals)) + geom_point() + ggtitle("Raw residual plot")
 std_resid_plt <- resid_df %>%  ggplot(aes(x=fitted_logsal, y=std_residuals)) + geom_point() + ggtitle("Standardized residual plot")
 raw_resid_plt
-std_resid_plt
 
 ```
 
+<br/>
+
+```{r p5aa, fig.width=5, fig.asp=0.618, echo=FALSE}
+std_resid_plt
+```
+
+
+While these plots are not perfect, namely in that there appears to be a slightly downward trend and some possible heteroscedasticity, they are reasonable enough to suggest that none of the assumptions of the linear model were flagrantly violated. The residuals are centered around zero, and somewhat resemble a "null plot." There does not appear to be any significant differences between the raw and standardized residuals that are worth discussing/exploring further.
+
+
 ### Outliers, Cook, Leverage, etc.
 
-Now, we'll look at some of the highest leverage cases.
+We also looked at some of the highest leverage cases.
 
-```{r p6, echo = FALSE, warning = FALSE, message=FALSE, fig.width=4, fig.asp=0.618}
+```{r p6, echo = FALSE, warning = FALSE, message=FALSE, fig.width=6, fig.asp=0.618}
 show_diagnostics <- function(model){
   x = model.matrix(model)
   h = x %*% solve(t(x) %*% x) %*% t(x)
@@ -426,20 +445,22 @@ outlier2 = data_init[which.max(modB$residuals),]
 
 ```
 
-This p-value is small, but not ridiculously small in the context of a dataset of 366 observations. We are unable to conclude that this point is an outlier and there is a reason to believe that the mean function for this point should be shifted. There is another data point that is a bit of an outlier in terms of having the largest residual. It doesn't actually appear to be an outlier that suggests the mean function assumed by the model is incorrect, however. This player is Iman Shumpert; we'll discuss him a bit later in our conclusions section.
+This p-value is small, but not ridiculously small in the context of a dataset of 366 observations. We are unable to conclude that this point is an outlier and there is a reason to believe that the mean function for this point should be shifted. 
+
+There is another data point that is a bit of an outlier in terms of having the largest residual. It doesn't actually appear to be an outlier that suggests the mean function assumed by the model is incorrect, however. This player is Iman Shumpert; we'll discuss him a bit later in our conclusions section.
 
 ### Contextual Applications
 
 One thing that was of interest to us was using this model to see which players are overperforming and underperforming their salary, based on the model's expectations. We'll look at the largest and smallest residuals, raw and standardized:
 
-```{r p12}
+```{r p12, echo=F}
 fmod = modB
 
 und_raw = which.min(resid(fmod))
-cat("Most Underpaid: ", data_init[und_raw, "Player"], ": Expected Salary: ", exp(predict(fmod, newdata=data[und_raw,])), ", Actual Salary: ", data_init[und_raw, "SALARY"], sep="")
+cat("Most Underpaid: ", data_init[und_raw, "Player"], ", Expected Salary: ", exp(predict(fmod, newdata=data[und_raw,])), ", Actual Salary: ", data_init[und_raw, "SALARY"], sep="")
 
 ovp_raw = which.max(resid(fmod))
-cat("Most Overpaid: ", data_init[ovp_raw, "Player"], ": Expected Salary: ", exp(predict(fmod, newdata=data[ovp_raw,])), ", Actual Salary: ", data_init[ovp_raw, "SALARY"], sep="")
+cat("Most Overpaid: ", data_init[ovp_raw, "Player"], ":, Expected Salary: ", exp(predict(fmod, newdata=data[ovp_raw,])), ", Actual Salary: ", data_init[ovp_raw, "SALARY"], sep="")
 
 ```
 
@@ -451,7 +472,9 @@ Our model thought Rodney Hood was the league's most underpaid player, and Iman S
 
 ## Appendix
 
-#### Figure A1: Transformation of VORP
+#### Figure A1: Transformation of VORP  
+  
+  <br />  \
 
 ```{r p0, echo=FALSE, warning=FALSE, message=FALSE}
 vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
@@ -461,7 +484,9 @@ adj_vorp_scatter = data_init %>% ggplot(aes(x=vorp_adj)) + geom_point(aes(y=logs
 grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 ```
 
-#### Figure A2: Transformation of Pos
+#### Figure A2: Transformation of Pos  
+  
+  <br />  \
 
 ```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
 pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
