@@ -359,17 +359,21 @@ We notice that the residual plot for the WLS is marginally better. However, when
 
 ### Model Interpretation
 
-```{r, echo=FALSE,warning=FALSE,warning=FALSE,results='hide'}
+In our model, four predictors are significant at the 99.9% confidence level: MP, Age, G and AST. The estimated coefficients for MP, Age and AST. are positive, which makes sense to a casual basketball fan. Players that play more often and produce higher offensive statistics should be paid more. Additionally, players generally tend to sign larger contracts as their career progresses. However, G has a negative estimated coefficient, implying that on average, players are paid less money when they play in more games. This doesn’t seem to be too logical at first. However, one could argue that a player that plays in more games would also generally play more minutes, and this argument would be backed by the 0.843 correlation coefficient between these two variables in our dataset. Perhaps one of these factors could have been removed early on, but given they are both highly statistically significant in our final model, it’s probably good that they were both kept. The estimated coefficients specifically for MP and for G are 0.009451 and -0.0158993, respectively, implying that a player’s predicted salary increases by approximately 0.09% for every extra minute played and decreases by about 1.58% for every extra game played. Therefore, the salary of a player who averages 18 or more minutes a game is predicted to benefit as the player plays more, while that of a player who averaged 17 minutes or less per game is expected to decrease as the player plays more.
+
+At the 99% confidence level, two more variables are significant: USG. And Pos_catG. USG. has a positive estimated coefficient of 0.0244984, indicating that a player’s expected salary increases 2.48% for every unit increase in USG. The Pos_catG indicator variable, conversely, has an estimated coefficient of -0.3685353. Since this model uses Pos_catBig as the baseline, this model projects that a guard’s predicted salary will be more than 30% less than a center’s given that the guard and center have identical factors for this model otherwise.
+
+Two additional models are significant at the 90% confidence level: orb_adj and stl_adj, with a positive and negative estimated coefficient, respectively. The idea that a player who can accumulate more offensive rebounds is predicted to have a higher salary is completely logical. On the other hand, a player who garners more steals being predicted to have a lower salary may be a bit confusing for basketball fans. A possible explanation for this could be that players with more steals are more likely to be “defense-first” players, which in 2015-16, were not as highly valued as primarily offensive skilled players.
+
+The estimated coefficient for the Pos_catWing indicator variable also becomes significant at the 90% confidence level, with an estimated value of -0.1741437. Like the situation for guards, our model proposes that the predicted salary for a Wing relative to a Center with the same model inputs otherwise is 15.98% lower, on average. The idea that talented bigs were much harder to come by than talented guards or wings during this time in the NBA would be widely agreed upon by fans. This could conceivably be why our model predicts centers with the same model-relevant statistics as a guard or wing would have higher salaries. Similarly, the talent pool was probably deepest among guards at this time, so there was less of an urge to pay guards as much money.
+
+Also present in the model are Multiteam and TOV., though neither significant at the 90% level. The estimated coefficient for the Multiteam indicator variables is positive, suggesting players who played for various teams during the 2015-16 NBA season typically had higher salaries. The estimated coefficient for TOV. was negative, confirming the idea that players who turned the ball over more often were paid less, on average.
+
+In all, our model reports an $R^2$ value of 0.5871 and Adjusted $R^2$ value of 0.5742. The 6-fold cross-validation procedure returns an average $R^2$ of 0.5665 on unseen test data, with the smallest root mean squared error and smallest mean absolute error of any of the five proposed models.
+
+```{r, echo=FALSE, message=FALSE,warning=FALSE}
 summary(modB)
 ```
-
-$$
-log(salary) = \beta_0 + \beta_1MP + \beta_2Age + \beta_3USG. + \beta_4G + \beta_5orb\_adj + \beta_6AST. + \beta_7stl\_adj + \beta_8stl\_adj + \beta_9Pos\_catG + \beta_{10}Pos\_catWing + \beta_{11}Multiteam + \beta_{12}TOV.
-$$
-
-$$
-y_i = 12.54 + 0.0009451 MP + 0.0673074Age + 0.0244984USG. - 0.0158993G + 0.1679352orb\_adj + 0.0220372AST. - 0.3190648stl\_adj - 0.3190648stl\_adj - 0.3685353Pos\_catG - 0.1741437Pos\_catWing + 0.1996041Multiteam - 0.0140422TOV.
-$$
 
 ### Outliers, Cook, Leverage, etc.
 
