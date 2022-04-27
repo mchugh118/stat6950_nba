@@ -142,10 +142,10 @@ for (i in 1:nmax){
 plt_data = data.frame(n_predictors=1:nmax, RMSE=rmse, Rsq = rsq)
 rmse_plt = plt_data %>% ggplot(aes(x=n_predictors, y=RMSE)) + geom_line() + ggtitle("C-V based sqrt(MSE) for a model with n predictors")
 rsq_plt = plt_data %>% ggplot(aes(x=n_predictors, y=Rsq)) + geom_line() + ggtitle("C-V based R-squared for a model with n predictors")
-print(rmse_plt)
-cat("\n")
-print(rsq_plt)
-#grid.arrange(rmse_plt, rsq_plt, nrow=2)
+#print(rmse_plt)
+#cat("\n\n")
+#print(rsq_plt)
+grid.arrange(rmse_plt, rsq_plt, nrow=2)
 
 ```
 
@@ -512,7 +512,7 @@ summary(modE)
 
 #### Figure A4: Predictors used in selected models
 
-  <br />  \
+  \
   
 ```{r warning=F, message=F, echo=F}
 par(mfrow = c(1,1))
@@ -521,7 +521,7 @@ plot(preds, asp=TRUE, las = 2, col = c("red","green"), xlab="", ylab="", main="P
 
 #### Figure A5: Correlation Matrix
 
-  <br />  \
+ \
   
 ```{r warning=F, message=F, echo=F}
 corrplot(cor(data[sapply(data, is.numeric)]))
