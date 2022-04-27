@@ -49,17 +49,7 @@ We proceeded to filter out players who were below the league minimum in salary, 
 
 From our EDA, we concluded that a log transformation of the response variable, salary, would be appropriate based on its skewed distribution.
 
-We also noticed that many of the covariates had skewed distributions, or did not have linear marginal relationships with the response variable log(salary). We attempted to make these variables approximately normally distirbutied with an approximately linear marginal relationship with the response. We experimented with log, square root, and squaring transformations. In the end, we consider the following transformations in our model:
-
-* VORP: A min/max normalization between 0 and 1 to eliminate negative values; then a log transformation
-* OWS: A min/max normalization between 0 and 1 to eliminate negative values; then a log transformation
-* DWS: Square root transformation
-* PTS: Square root transformation
-* FTr: Square root transformation
-* BLK: Log transformation
-* STL: Log transformation
-* GS: Log transformation
-* ORB: Log transformation
+We also noticed that many of the covariates had skewed distributions, or did not have linear marginal relationships with the response variable log(salary). We attempted to make these variables approximately normally distirbutied with an approximately linear marginal relationship with the response. We experimented with log, square root, and squaring transformations. See figure A1 for a list of all transformations made, as well as plots of an example transformation (VORP).
 
 ```{r, echo= FALSE , warning=FALSE, message=FALSE}
 data_init <- read.csv("data/PlayerData.csv")[,-1] %>% mutate(logsal = log(SALARY))
@@ -71,7 +61,7 @@ data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_
 attach(data)
 ```
 
-We use VORP as an example in the appendix. Figure A1 shows the distribution of VORP and its plot against log(salary) both pre- and post-transformation. Though not perfect, the transformed variable appears to be much more appropriate for a linear model than the raw variable. 
+Though not perfect, the transformed variable appears to be much more appropriate for a linear model than the raw variable. 
 
 We can also see that Pos has some redundancy and maybe too much granularity. For example, "F-C" (forward/center) and "C-F" (center/forward) are treated as different positions by the model when they are functionally the same. We cleaned this up by grouping players into "Guards", "Wings", and "Bigs" according to Pos. Figure A2 shows this variable pre- and post-transformation. From the graph, it is unclear if there is a significant relationship between the refined position predictor Pos_cat and log(salary).
 
@@ -81,10 +71,9 @@ Once our predictors are appropriately transformed, we considered all pairwise co
 
 ## Variable Selection
 
-Three pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that pts_adj and MP have a correlation coefficient of $0.947$, ORtg and TS. have a correlation coefficient of $0.888$, and finally WS.48 and PER have a correlation coefficient of $0.864$. To avoid redundancy in the model, we'll remove one predictor in each of the three pairs from the model. The terms' variance inflation factors will guide the decision regarding which predictor to drop. Using GVIF$^\frac{1}{2df}$ will allow the GVIFs to be comparable across dimensions. Thus, we remove pts_adj (8.77 > 6.25), TS. (4.64 > 4.29), and WS.48 (8.42 > 7.42).
+Figure A5 shows a correlation matrix, previously seen in our EDA. Three pairs of predictors with noticably large correlations according the the correlation matrix are further investigated. We learn that pts_adj and MP have a correlation coefficient of $0.947$, ORtg and TS. have a correlation coefficient of $0.888$, and finally WS.48 and PER have a correlation coefficient of $0.864$. To avoid redundancy in the model, we'll remove one predictor in each of the three pairs from the model. The terms' variance inflation factors will guide the decision regarding which predictor to drop. Using GVIF$^\frac{1}{2df}$ will allow the GVIFs to be comparable across dimensions. Thus, we remove pts_adj (8.77 > 6.25), TS. (4.64 > 4.29), and WS.48 (8.42 > 7.42).
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=6}
-corrplot(cor(data[sapply(data, is.numeric)]))
 full = lm(logsal ~ ., data = data)
 #vif(full)[,3]
 data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_adj, orb_adj, DRB., AST.,
@@ -132,7 +121,7 @@ Of these best models previously mentioned, we see that the model with the smalle
 
 As we continued the model building process, we wanted to make sure we were avoiding overfitting. We created an algorithm where we used the regsubsets function to identify the n best predictors for all n from 1 to a large number, and included first level interaction effects. While some of these models included interactions without the corresponding main effects, we just used this as a rough guideline. We then looked at some of the evaluation metrics for these "best n predictors" models, such as $R^2$ and MSE, on k-folds cross-validated data. 
 
-```{r px11, echo=FALSE}
+```{r px11, echo=FALSE, fig.width=6, fig.asp=.33}
 train.control <- trainControl(method = "cv", number=5)
 datax = data %>% dplyr::select(-c(Pos_cat, International, Conference))
 rsq = c()
@@ -153,7 +142,10 @@ for (i in 1:nmax){
 plt_data = data.frame(n_predictors=1:nmax, RMSE=rmse, Rsq = rsq)
 rmse_plt = plt_data %>% ggplot(aes(x=n_predictors, y=RMSE)) + geom_line() + ggtitle("C-V based sqrt(MSE) for a model with n predictors")
 rsq_plt = plt_data %>% ggplot(aes(x=n_predictors, y=Rsq)) + geom_line() + ggtitle("C-V based R-squared for a model with n predictors")
-grid.arrange(rmse_plt, rsq_plt, nrow=2)
+print(rmse_plt)
+cat("\n")
+print(rsq_plt)
+#grid.arrange(rmse_plt, rsq_plt, nrow=2)
 
 ```
 
@@ -193,7 +185,7 @@ The best model chosen with 19 variables, Model E, includes the previously listed
 * ftr_adj:Pos_catWing
 * orb_adj:Pos_catWing
 
-However, we would like to follow a rule of thumb that if a predictor is involved in an interaction term within a model, the main effect should also be included. Therefore, we'll add terms to each of the above models in order to suffice this rule. Thus, for the five models proposed so far, we examine the predictors involved.
+However, we would like to follow a rule of thumb that if a predictor is involved in an interaction term within a model, the main effect should also be included. Therefore, we'll add terms to each of the above models in order to suffice this rule. Thus, for the five models proposed so far, we examine the predictors involved. Figure A4 shows which predictors are used by which models.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 preds <- matrix(double(39*5), nrow = 5)
@@ -204,12 +196,9 @@ preds[2, c(4,1,14,2,8,10,11,22,26,13)] <- 1
 preds[3, c(4,6,17,27:32,1,16,2,7,12,13,15,20,16,21,18,25)] <- 1
 preds[4, c(4,6,17,27:35,1,16,2,7,12,13,15,20,16,21,18,25,1,24,10,21,12,17)] <- 1
 preds[5, c(4,5,6,17,27:39,1,16,2,7,12,13,15,20,16,21,18,25,1,24,10,21,12,17,1,17,7,22,8,22)] <- 1
-
-par(mfrow = c(1,1))
-plot(preds, asp=TRUE, las = 2, col = c("red","green"), xlab="Variables", ylab="Models")
 ```
 
-Immediately we can see that all five proposed models use Age, G and MP as predictors. On the other hand, none of the models use gs_adj, DRB., OBPM or Height.
+All five proposed models use Age, G and MP as predictors. On the other hand, none of the models use gs_adj, DRB., OBPM or Height.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 data <- data_init %>% dplyr::select(logsal, Age, G, MP, PER, X3PAr, ftr_adj, orb_adj, AST.,
@@ -330,7 +319,7 @@ A previously mentioned concern was the vague downward linear trend of the residu
 
 No clear relationship between the residuals and any predictor is observed, so we instead use the HC3 method and compute the weights as a function of the OLS residuals and the leverages.
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=5.5, fig.asp=0.618}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=4.8, fig.asp=0.618}
 ols_model = modB
 std_resid = rstandard(ols_model)
 
@@ -349,7 +338,7 @@ ols_resid_with_weights
 
 <br/>  \
 
-```{r p5y, echo=FALSE, message=FALSE, warning=FALSE, fig.width=5.5, fig.asp=0.618}
+```{r p5y, echo=FALSE, message=FALSE, warning=FALSE, fig.width=4.8, fig.asp=0.618}
 wls_resids_with_weights
 
 
@@ -371,27 +360,19 @@ In all, our model reports an $R^2$ value of 0.5871 and Adjusted $R^2$ value of 0
 
 We will also look at the residual plot again, as well as the standardized residual plot:
 
-```{r p5z, fig.width=5, fig.asp=0.618, echo=FALSE}
+```{r p5z, fig.width=7, fig.asp=0.5}
 resid_df = data.frame(raw_residuals=modB$residuals , fitted_logsal=modB$fitted.values, std_residuals=rstandard(modB))
 
 raw_resid_plt <- resid_df %>%  ggplot(aes(x=fitted_logsal, y=raw_residuals)) + geom_point() + ggtitle("Raw residual plot")
 std_resid_plt <- resid_df %>%  ggplot(aes(x=fitted_logsal, y=std_residuals)) + geom_point() + ggtitle("Standardized residual plot")
-raw_resid_plt
-
+grid.arrange(raw_resid_plt, std_resid_plt, nrow=1)
 ```
-
-<br/>  \
-
-```{r p5aa, fig.width=5, fig.asp=0.618, echo=FALSE}
-std_resid_plt
-```
-
 
 While these plots are not perfect, namely in that there appears to be a slightly downward trend and some possible heteroscedasticity, they are reasonable enough to suggest that none of the assumptions of the linear model were flagrantly violated. The residuals are centered around zero, and somewhat resemble a "null plot." There does not appear to be any significant differences between the raw and standardized residuals that are worth discussing/exploring further.
 
-We also looked at some of the highest leverage cases.
+We also looked at some of the cases with the highest leverage and Cook's distance. See Figure A6 for a plot of these leverages and Cook's distances.
 
-```{r p6, echo = FALSE, warning = FALSE, message=FALSE, fig.width=6, fig.asp=0.618}
+```{r p6, echo = FALSE, warning = FALSE, message=FALSE, fig.width=4.8, fig.asp=0.618}
 show_diagnostics <- function(model){
   x = model.matrix(model)
   h = x %*% solve(t(x) %*% x) %*% t(x)
@@ -400,10 +381,10 @@ show_diagnostics <- function(model){
   cooks = cooks.distance(model)
   cook_resid_plot <- data.frame(resid=model$residuals , fitted_logsal=model$fitted.values, cook_distance=cooks) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(size=cook_distance, color=cook_distance)) + ggtitle("Residual plot with Cook's Distance")
   print(lev_resid_plot)
+  cat("\n\n")
   print(cook_resid_plot)
 }
 
-show_diagnostics(modB)
 ```
 
 There's an outlying case with a large leverage and Cook's Distance. The residual does not appear to be anything extraordinary, however. After digging into this data point, we see that it's Jarnell Stokes, a guy who appeared in 7 games and played 18 minutes. It does appear that he has some noisy statistics due to a small sample size from a lack of playing time. We'll use a t-test for a mean shift to formally test if this is an outlier.
@@ -473,7 +454,17 @@ Our model thought Rodney Hood was the league's most underpaid player, and Iman S
 
 ## Appendix
 
-#### Figure A1: Transformation of VORP  
+#### Figure A1: Transformed variables; and transformation of VORP  
+  
+* VORP: A min/max normalization between 0 and 1 to eliminate negative values; then a log transformation
+* OWS: A min/max normalization between 0 and 1 to eliminate negative values; then a log transformation
+* DWS: Square root transformation
+* PTS: Square root transformation
+* FTr: Square root transformation
+* BLK: Log transformation
+* STL: Log transformation
+* GS: Log transformation
+* ORB: Log transformation  
   
   <br />  \
 
@@ -505,3 +496,27 @@ summary(modC)
 summary(modD)
 summary(modE)
 ```
+
+#### Figure A4: Predictors used in selected models
+
+  <br />  \
+  
+```{r warning=F, message=F, echo=F}
+par(mfrow = c(1,1))
+plot(preds, asp=TRUE, las = 2, col = c("red","green"), xlab="", ylab="", main="Predictors used in selected models")
+```
+
+#### Figure A5: Correlation Matrix
+
+  <br />  \
+  
+```{r warning=F, message=F, echo=F}
+corrplot(cor(data[sapply(data, is.numeric)]))
+```
+
+#### Figure A6: Residual plots of final model, including leverage and Cook's distance
+
+```{r a6, warning=F, echo=F, message=F}
+show_diagnostics(modB)
+```
+
