@@ -318,14 +318,25 @@ wls_model = lm(logsal ~ Age + pts_adj + Multiteam + dws_adj + Pos_cat, data=data
 wls_resids = data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("WLS Residual plot")
 wls_resids_with_weights = data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("WLS Residual plot with weights")
 
-p1 <- ols_resid_with_weights
-p2 <- wls_resids_with_weights
-p1 + p2 + plot_layout(ncol=1)
+ols_resid_with_weights
+wls_resids_with_weights
 ```
 
 ## Discussion
 
 ### Model Interpretation
+
+```{r, echo=FALSE,warning=FALSE,warning=FALSE,results='hide'}
+summary(modB)
+```
+
+$$
+log(salary) = \beta_0 + \beta_1MP + \beta_2Age + \beta_3USG. + \beta_4G + \beta_5orb\_adj + \beta_6AST. + \beta_7stl\_adj + \beta_8stl\_adj + \beta_9Pos\_catG + \beta_{10}Pos\_catWing + \beta_{11}Multiteam + \beta_{12}TOV.
+$$
+
+$$
+y_i = 12.54 + 0.0009451 MP + 0.0673074Age + 0.0244984USG. - 0.0158993G + 0.1679352orb\_adj + 0.0220372AST. - 0.3190648stl\_adj - 0.3190648stl\_adj - 0.3685353Pos\_catG - 0.1741437Pos\_catWing + 0.1996041Multiteam - 0.0140422TOV.
+$$
 
 ### Outliers, Cook, Leverage, etc.
 
@@ -365,3 +376,4 @@ test_outlier_meanshift(modB, which.max(cooks.distance(modB)))
 ### Contextual Applications
 
 ## Conclusion
+
