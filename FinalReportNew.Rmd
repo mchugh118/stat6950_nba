@@ -128,9 +128,11 @@ abline(v = 13, col="red")
 abline(v = c(9,19))
 ```
 
+Of these best models previously mentioned, we see that the model with the smallest BIC is the best model chosen with 13 variables. Though the Adjusted $R^2$ of a model does not necessarily have to increase as more variables are added, we see that in this case, the Adjusted $R^2$ is non-decreasing in the number of variables at least up to 50. Practically, a model with 50 variables is not ideal. There seems to be a point in the Adjusted $R^2$ plot in which the rate of change begins to flatten out that matches well with the point in the BIC plot where the BIC begins to rise again. This point is the best model chosen with 19 variables. Similarly, the best model chosen with 9 variables corresponds to an appropriate lower bound for the number of variables with both a satisfactory BIC and Adjusted $R^2$.
+
 As we continued the model building process, we wanted to make sure we were avoiding overfitting. We created an algorithm where we used the regsubsets function to identify the n best predictors for all n from 1 to a large number, and included first level interaction effects. While some of these models included interactions without the corresponding main effects, we just used this as a rough guideline. We then looked at some of the evaluation metrics for these "best n predictors" models, such as $R^2$ and MSE, on k-folds cross-validated data. 
 
-```{r px11}
+```{r px11, echo=FALSE}
 train.control <- trainControl(method = "cv", number=5)
 datax = data %>% dplyr::select(-c(Pos_cat, International, Conference))
 rsq = c()
@@ -156,8 +158,6 @@ grid.arrange(rmse_plt, rsq_plt, nrow=2)
 ```
 
 As the number of predictors increased, the model metrics tended to flatten out. While it was good that the cross-validation based metrics weren't getting worse, the rate of improvement decreased heavily. Also, as more terms are added to the model, training set metrics such as $R^2$ and MSE continued to rise. The increasing gap between training metrics and cross-validation metrics concerned us, and guided us towards the simpler models. Also, with similar c-v based evaluation metrics, we prefer simpler models, due to interpretability. 
-
-Of these best models previously mentioned, we see that the model with the smallest BIC is the best model chosen with 13 variables. Though the Adjusted $R^2$ of a model does not necessarily have to increase as more variables are added, we see that in this case, the Adjusted $R^2$ is non-decreasing in the number of variables at least up to 50. Practically, a model with 50 variables is not ideal. There seems to be a point in the Adjusted $R^2$ plot in which the rate of change begins to flatten out that matches well with the point in the BIC plot where the BIC begins to rise again. This point is the best model chosen with 19 variables. Similarly, the best model chosen with 9 variables corresponds to an appropriate lower bound for the number of variables with both a satisfactory BIC and Adjusted $R^2$.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 coef(regfit_full, 9)
@@ -312,6 +312,8 @@ mod_feat
 
 Here, Model.Rsquared is the $R^2$ reported by the model and Model.AdjRsquared is the Adjusted $R^2$ reported by the model. Meanwhile, CV.RMSE is the average root mean squared error of the model on unseen data from the cross-validation, CV.Rsquared is the $R^2$ of the model on unseen data from the cross-validation, and CV.MAE is the mean absolute error of the model on unseen data from the cross-validation. Ideally, we're searching for higher values for Model.Rsquared, Model.AdjRsquared and CV.Rsquared with lower values for CV.RMSE and CV.MAE. However, too small of a difference between model accuracy and cross-validation accuracy may be an indication of overfitting, while too large of a difference may be a symptom of underfitting.
 
+Model B performed the best in the cross-validation and we decide to continue our analysis by considering only Model B
+
 ## Considering Weighted Least Squares
 
 A previously mentioned concern was the vague downward linear trend of the residuals. We will attempt to use weighted least squares to help resolve this. Our first attempt will involve plotting the standardized residuals against each of the predictors as well as the inverse of each of the predictors. This will help display if the variance in residuals is a function of any of the individual predictors.
@@ -363,25 +365,7 @@ print(wls.cv$results)
 We notice that the residual plot for the WLS is marginally better. However, when evaluating each model over k-folds, the WLS performs poorly. We suspect this is probably a case of overfitting. The OLS model is better and it's not even close. Thus, we decided to table the WLS idea for now.
 
 
-## Discussion
-
-### Model Interpretation
-
-In our model, four predictors are significant at the 99.9% confidence level: MP, Age, G and AST. The estimated coefficients for MP, Age and AST. are positive, which makes sense to a casual basketball fan. Players that play more often and produce higher offensive statistics should be paid more. Additionally, players generally tend to sign larger contracts as their career progresses. However, G has a negative estimated coefficient, implying that on average, players are paid less money when they play in more games. This doesn’t seem to be too logical at first. However, one could argue that a player that plays in more games would also generally play more minutes, and this argument would be backed by the 0.843 correlation coefficient between these two variables in our dataset. Perhaps one of these factors could have been removed early on, but given they are both highly statistically significant in our final model, it’s probably good that they were both kept. The estimated coefficients specifically for MP and for G are 0.009451 and -0.0158993, respectively, implying that a player’s predicted salary increases by approximately 0.09% for every extra minute played and decreases by about 1.58% for every extra game played. Therefore, the salary of a player who averages 18 or more minutes a game is predicted to benefit as the player plays more, while that of a player who averaged 17 minutes or less per game is expected to decrease as the player plays more.
-
-At the 99% confidence level, two more variables are significant: USG. And Pos_catG. USG. has a positive estimated coefficient of 0.0244984, indicating that a player’s expected salary increases 2.48% for every unit increase in USG. The Pos_catG indicator variable, conversely, has an estimated coefficient of -0.3685353. Since this model uses Pos_catBig as the baseline, this model projects that a guard’s predicted salary will be more than 30% less than a center’s given that the guard and center have identical factors for this model otherwise.
-
-Two additional models are significant at the 90% confidence level: orb_adj and stl_adj, with a positive and negative estimated coefficient, respectively. The idea that a player who can accumulate more offensive rebounds is predicted to have a higher salary is completely logical. On the other hand, a player who garners more steals being predicted to have a lower salary may be a bit confusing for basketball fans. A possible explanation for this could be that players with more steals are more likely to be “defense-first” players, which in 2015-16, were not as highly valued as primarily offensive skilled players.
-
-The estimated coefficient for the Pos_catWing indicator variable also becomes significant at the 90% confidence level, with an estimated value of -0.1741437. Like the situation for guards, our model proposes that the predicted salary for a Wing relative to a Center with the same model inputs otherwise is 15.98% lower, on average. The idea that talented bigs were much harder to come by than talented guards or wings during this time in the NBA would be widely agreed upon by fans. This could conceivably be why our model predicts centers with the same model-relevant statistics as a guard or wing would have higher salaries. Similarly, the talent pool was probably deepest among guards at this time, so there was less of an urge to pay guards as much money.
-
-Also present in the model are Multiteam and TOV., though neither significant at the 90% level. The estimated coefficient for the Multiteam indicator variables is positive, suggesting players who played for various teams during the 2015-16 NBA season typically had higher salaries. The estimated coefficient for TOV. was negative, confirming the idea that players who turned the ball over more often were paid less, on average.
-
-```{r, echo=FALSE, message=FALSE,warning=FALSE}
-summary(modB)
-```
-
-### Model Diagnostics
+## Model Diagnostics
 
 In all, our model reports an $R^2$ value of 0.5871 and Adjusted $R^2$ value of 0.5742. The 6-fold cross-validation procedure returns an average $R^2$ of 0.5665 on unseen test data, with the smallest root mean squared error and smallest mean absolute error of any of the five proposed models.
 
@@ -404,9 +388,6 @@ std_resid_plt
 
 
 While these plots are not perfect, namely in that there appears to be a slightly downward trend and some possible heteroscedasticity, they are reasonable enough to suggest that none of the assumptions of the linear model were flagrantly violated. The residuals are centered around zero, and somewhat resemble a "null plot." There does not appear to be any significant differences between the raw and standardized residuals that are worth discussing/exploring further.
-
-
-### Outliers, Cook, Leverage, etc.
 
 We also looked at some of the highest leverage cases.
 
@@ -449,6 +430,25 @@ This p-value is small, but not ridiculously small in the context of a dataset of
 
 There is another data point that is a bit of an outlier in terms of having the largest residual. It doesn't actually appear to be an outlier that suggests the mean function assumed by the model is incorrect, however. This player is Iman Shumpert; we'll discuss him a bit later in our conclusions section.
 
+## Discussion
+
+### Model Interpretation
+
+In our model, four predictors are significant at the 99.9% confidence level: MP, Age, G and AST. The estimated coefficients for MP, Age and AST. are positive, which makes sense to a casual basketball fan. Players that play more often and produce higher offensive statistics should be paid more. Additionally, players generally tend to sign larger contracts as their career progresses. However, G has a negative estimated coefficient, implying that on average, players are paid less money when they play in more games. This doesn’t seem to be too logical at first. However, one could argue that a player that plays in more games would also generally play more minutes, and this argument would be backed by the 0.843 correlation coefficient between these two variables in our dataset. Perhaps one of these factors could have been removed early on, but given they are both highly statistically significant in our final model, it’s probably good that they were both kept. The estimated coefficients specifically for MP and for G are 0.009451 and -0.0158993, respectively, implying that a player’s predicted salary increases by approximately 0.09% for every extra minute played and decreases by about 1.58% for every extra game played. Therefore, the salary of a player who averages 18 or more minutes a game is predicted to benefit as the player plays more, while that of a player who averaged 17 minutes or less per game is expected to decrease as the player plays more.
+
+At the 99% confidence level, two more variables are significant: USG. And Pos_catG. USG. has a positive estimated coefficient of 0.0244984, indicating that a player’s expected salary increases 2.48% for every unit increase in USG. The Pos_catG indicator variable, conversely, has an estimated coefficient of -0.3685353. Since this model uses Pos_catBig as the baseline, this model projects that a guard’s predicted salary will be more than 30% less than a center’s given that the guard and center have identical factors for this model otherwise.
+
+Two additional models are significant at the 90% confidence level: orb_adj and stl_adj, with a positive and negative estimated coefficient, respectively. The idea that a player who can accumulate more offensive rebounds is predicted to have a higher salary is completely logical. On the other hand, a player who garners more steals being predicted to have a lower salary may be a bit confusing for basketball fans. A possible explanation for this could be that players with more steals are more likely to be “defense-first” players, which in 2015-16, were not as highly valued as primarily offensive skilled players.
+
+The estimated coefficient for the Pos_catWing indicator variable also becomes significant at the 90% confidence level, with an estimated value of -0.1741437. Like the situation for guards, our model proposes that the predicted salary for a Wing relative to a Center with the same model inputs otherwise is 15.98% lower, on average. The idea that talented bigs were much harder to come by than talented guards or wings during this time in the NBA would be widely agreed upon by fans. This could conceivably be why our model predicts centers with the same model-relevant statistics as a guard or wing would have higher salaries. Similarly, the talent pool was probably deepest among guards at this time, so there was less of an urge to pay guards as much money.
+
+Also present in the model are Multiteam and TOV., though neither significant at the 90% level. The estimated coefficient for the Multiteam indicator variables is positive, suggesting players who played for various teams during the 2015-16 NBA season typically had higher salaries. The estimated coefficient for TOV. was negative, confirming the idea that players who turned the ball over more often were paid less, on average.
+
+```{r, message=FALSE,warning=FALSE}
+summary(modB)
+```
+
+
 ### Contextual Applications
 
 One thing that was of interest to us was using this model to see which players are overperforming and underperforming their salary, based on the model's expectations. We'll look at the largest and smallest residuals, raw and standardized:
@@ -469,12 +469,13 @@ Our model thought Rodney Hood was the league's most underpaid player, and Iman S
 
 ## Conclusion
 
+\newpage
 
 ## Appendix
 
 #### Figure A1: Transformation of VORP  
   
-  <br />  \
+  <br />  
 
 ```{r p0, echo=FALSE, warning=FALSE, message=FALSE}
 vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
@@ -486,10 +487,21 @@ grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 
 #### Figure A2: Transformation of Pos  
   
-  <br />  \
+  <br />  
 
 ```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
 pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
 pos_cat_box = data_init %>% ggplot(aes(x = Pos_cat, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (refined)")
 grid.arrange(pos_box, pos_cat_box, nrow = 1)
+```
+
+#### Output A3: Summaries of Models A, C, D, E
+
+  <br />  
+
+```{r, warning=FALSE, message=FALSE}
+summary(modA)
+summary(modC)
+summary(modD)
+summary(modE)
 ```
