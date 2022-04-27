@@ -494,7 +494,7 @@ grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 
 #### Figure A2: Transformation of Pos  
   
-&nbsp;
+&nbsp; \
 
 ```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
 pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
@@ -517,7 +517,7 @@ summary(modE)
 
 #### Figure A4: Predictors used in selected models
 
-&nbsp;
+&nbsp; \
   
 ```{r warning=F, message=F, echo=F}
 par(mfrow = c(1,1))
@@ -528,7 +528,7 @@ plot(preds, asp=TRUE, las = 2, col = c("red","green"), xlab="", ylab="", main="P
 
 #### Figure A5: Correlation Matrix
 
-&nbsp;
+&nbsp; \
   
 ```{r warning=F, message=F, echo=F}
 corrplot(cor(data[sapply(data, is.numeric)]))
