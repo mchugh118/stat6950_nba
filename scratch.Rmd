@@ -1,0 +1,17 @@
+---
+title: "scr"
+author: "Patrick McHugh"
+date: "4/26/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r p7, echo = FALSE, warning = FALSE, message=FALSE}
+
+pv = .04
+cat("Outlier p-value: ", pv)
+
+```

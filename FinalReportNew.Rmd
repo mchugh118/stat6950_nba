@@ -38,7 +38,7 @@ We are modeling based on the 2015-16 NBA season. We know salary is known before 
 
 ## Data Exploration
 
-A description of the data sources and variables can be found in the previously submitted EDA portion of the project. We proceeded to filter out players who were below the league minimum in salary, as they were exclusively players signed to short term (i.e., 10-day) contracts with wildly volatile data.
+A description of the data sources and variables can be found in the previously submitted EDA portion of the project. We proceeded to filter out players who were below the league minimum in salary, as they were exclusively players signed to short term (i.e., 10-day) contracts with wildly volatile data. We felt that players on shorter than full season contracts would be worth creating a separate model for in another project.
 
 From our EDA, we concluded that a log transformation of the response variable, salary, would be appropriate based on its skewed distribution.
 
@@ -133,7 +133,36 @@ abline(v = 13, col="red")
 abline(v = c(9,19))
 ```
 
-Of these best models, we see that the model with the smallest BIC is the best model chosen with 13 variables. Though the Adjusted $R^2$ of a model does not necessarily have to increase as more variables are added, we see that in this case, the Adjusted $R^2$ is non-decreasing in the number of variables at least up to 50. Practically, a model with 50 variables is not ideal. There seems to be a point in the Adjusted $R^2$ plot in which the rate of change begins to flatten out that matches well with the point in the BIC plot where the BIC begins to rise again. This point is the best model chosen with 19 variables. Similarly, the best model chosen with 9 variables corresponds to an appropriate lower bound for the number of variables with both a satisfactory BIC and Adjusted $R^2$.
+As we continued the model building process, we wanted to make sure we were avoiding overfitting. We created an algorithm where we used the regsubsets function to identify the n best predictors for all n from 1 to a large number, and included first level interaction effects. While some of these models included interactions without the corresponding main effects, we just used this as a rough guideline. We then looked at some of the evaluation metrics for these "best n predictors" models, such as $R^2$ and MSE, on k-folds cross-validated data. 
+
+```{r px11}
+train.control <- trainControl(method = "cv", number=5)
+datax = data %>% dplyr::select(-c(Pos_cat, International, Conference))
+rsq = c()
+rmse = c()
+nmax = 60
+regfit_full <- regsubsets(logsal ~ .^2, data = datax, nvmax = nmax, method = "backward")
+
+for (i in 1:nmax){
+  cols = names(which(summary(regfit_full)$which[i,-1] == TRUE))
+  predictors <- paste(cols, collapse = "+")
+  form = as.formula(paste0("logsal ~", predictors))
+  cv.mod = train(form, data=datax, method="lm", trControl = train.control)
+  rsq = c(rsq, cv.mod$results$Rsquared)
+  rmse = c(rmse, cv.mod$results$RMSE)
+}
+
+
+plt_data = data.frame(n_predictors=1:nmax, RMSE=rmse, Rsq = rsq)
+rmse_plt = plt_data %>% ggplot(aes(x=n_predictors, y=RMSE)) + geom_line() + ggtitle("C-V based sqrt(MSE) for a model with n predictors")
+rsq_plt = plt_data %>% ggplot(aes(x=n_predictors, y=Rsq)) + geom_line() + ggtitle("C-V based R-squared for a model with n predictors")
+grid.arrange(rmse_plt, rsq_plt, nrow=2)
+
+```
+
+As the number of predictors increased, the model metrics tended to flatten out. While it was good that the cross-validation based metrics weren't getting worse, the rate of improvement decreased heavily. Also, as more terms are added to the model, training set metrics such as $R^2$ and MSE continued to rise. The increasing gap between training metrics and cross-validation metrics concerned us, and guided us towards the simpler models. Also, with similar c-v based evaluation metrics, we prefer simpler models, due to interpretability. 
+
+Of these best models previously mentioned, we see that the model with the smallest BIC is the best model chosen with 13 variables. Though the Adjusted $R^2$ of a model does not necessarily have to increase as more variables are added, we see that in this case, the Adjusted $R^2$ is non-decreasing in the number of variables at least up to 50. Practically, a model with 50 variables is not ideal. There seems to be a point in the Adjusted $R^2$ plot in which the rate of change begins to flatten out that matches well with the point in the BIC plot where the BIC begins to rise again. This point is the best model chosen with 19 variables. Similarly, the best model chosen with 9 variables corresponds to an appropriate lower bound for the number of variables with both a satisfactory BIC and Adjusted $R^2$.
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 coef(regfit_full, 9)
@@ -313,14 +342,26 @@ weights = (resid(ols_model))^2 / ((1 - leverage(ols_model))^2)
 
 ols_resid_with_weights = data.frame(resid=ols_model$residuals , fitted_logsal=ols_model$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("OLS Residual plot with weights")
 
-wls_model = lm(logsal ~ Age + pts_adj + Multiteam + dws_adj + Pos_cat, data=data, weights=weights)
+wls_model = lm(as.formula(ols_model$call[2]), weight=weights, data = data)
 
 wls_resids = data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point() + ggtitle("WLS Residual plot")
 wls_resids_with_weights = data.frame(resid=wls_model$residuals , fitted_logsal=wls_model$fitted.values, weight=weights) %>%  ggplot(aes(x=fitted_logsal, y=resid)) + geom_point(aes(color=weight, size=weight)) + ggtitle("WLS Residual plot with weights")
 
 ols_resid_with_weights
 wls_resids_with_weights
+
+
+ols.cv = train(as.formula(ols_model$call[2]), data=data, method="lm", trControl = train.control)
+wls.cv = train(as.formula(ols_model$call[2]), data=data, method="lm", weights=weights, trControl = train.control)
+cat("OLS:")
+print(ols.cv$results)
+cat("WLS:")
+print(wls.cv$results)
 ```
+
+
+We notice that the residual plot for the WLS is marginally better. However, when evaluating each model over k-folds, the WLS performs poorly. We suspect this is probably a case of overfitting. The OLS model is better and it's not even close. Thus, we decided to table the WLS idea for now.
+
 
 ## Discussion
 
@@ -357,9 +398,9 @@ show_diagnostics <- function(model){
 show_diagnostics(modB)
 ```
 
-There's an outlying case with a large leverage and Cook's Distance. We'll use a t-test for a mean shift to formally test if this is an outlier.
+There's an outlying case with a large leverage and Cook's Distance. The residual does not appear to be anything extraordinary, but we'll use a t-test for a mean shift to formally test if this is an outlier.
 
-```{r p7, echo = FALSE, warning = FALSE, message=FALSE, results = 'hide'}
+```{r p7, echo = FALSE, warning = FALSE, message=FALSE}
 test_outlier_meanshift <- function(model, ind){
   p = length(coef(model))
   n = nrow(model.matrix(model))
@@ -369,9 +410,12 @@ test_outlier_meanshift <- function(model, ind){
   return (pval)
 }
 
-test_outlier_meanshift(modB, which.max(cooks.distance(modB)))
+pv = test_outlier_meanshift(modB, which.max(cooks.distance(modB)))
+cat("Outlier p-value: ", pv)
 
 ```
+
+This p-value is small, but not ridiculously small in the context of a dataset of 366 observations. We are unable to conclude that this point is an outlier and there is a reason to believe that the mean function for this point should be shifted.
 
 ### Contextual Applications
 
