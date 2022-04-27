@@ -84,7 +84,7 @@ data <- data_init %>% dplyr::select(logsal, Age, G, gs_adj, MP, PER, X3PAr, ftr_
 
 We will begin by looking at a full model with all remaining predictors and employ stepwise regression methods to find the best model. According to BIC, the stepwise regression model working in both directions returns MP, Age, USG., G and orb_adj as predictors. We'll call this Model A. The model using AIC in its variable selection process additionally returns AST., stl_adj, Pos_cat, Multiteam, and TOV.. We'll call this Model B.
 
-```{r p2, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+```{r p2, echo=FALSE, warning=FALSE, message=FALSE, results='hide', fig.width=3, fig.height=3}
 
 #all_models = regsubsets(SALARY ~ ., force.in = 1, data = data, nbest = max(choose(n_predictors, 0:n_predictors)), really.big = T, nvmax = 13)
 null = lm(logsal ~ 1, data = data)
@@ -103,7 +103,7 @@ print(stepbic_model$call)
 
 Interactions of predictors may also be of interest in our model. Intuitively, it would make sense if the effect of offensive rebounds on a player's salary was dependent on the player's position. Therefore, we'll also consider models with interaction terms, but with 26 possible main effects, there are at least $26(25)=650$ possible interaction terms. We'll use the regsubsets function in the leaps package to return the best models of each size, setting a conservative limit of the number of variables in the model to 50.
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results=F, fig.width=7, fig.height=4}
 regfit_full <- regsubsets(logsal ~ .^2, data = data, nvmax = 50, method = "backward")
 reg_summary <- summary(regfit_full)
 

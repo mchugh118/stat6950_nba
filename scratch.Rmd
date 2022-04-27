@@ -10,8 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r p7, echo = FALSE, warning = FALSE, message=FALSE}
+regfit_full <- regsubsets(logsal ~ .^2, data = data, nvmax = 50, method = "backward")
+reg_summary <- summary(regfit_full)
 
-pv = .04
-cat("Outlier p-value: ", pv)
+par(mfrow = c(1,2))
+plot(reg_summary$bic, xlab = "Number of Variables", ylab = "BIC", type = "l")
 
 ```
