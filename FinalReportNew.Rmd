@@ -509,7 +509,6 @@ summary(modC)
 summary(modD)
 summary(modE)
 ```
-<<<<<<< HEAD
 
 #### Figure A4: Predictors used in selected models
 
@@ -534,5 +533,4 @@ corrplot(cor(data[sapply(data, is.numeric)]))
 show_diagnostics(modB)
 ```
 
-=======
->>>>>>> b00b23fa4a771753894abcfd6bcdbfeaad2e658a
+
