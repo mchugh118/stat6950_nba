@@ -371,11 +371,23 @@ $$
 y_i = 12.54 + 0.0009451 MP + 0.0673074Age + 0.0244984USG. - 0.0158993G + 0.1679352orb\_adj + 0.0220372AST. - 0.3190648stl\_adj - 0.3190648stl\_adj - 0.3685353Pos\_catG - 0.1741437Pos\_catWing + 0.1996041Multiteam - 0.0140422TOV.
 $$
 
+### Model Diagnostics
+
+```{r p5z, fig.width=5, fig.asp=0.618}
+resid_df = data.frame(raw_residuals=modB$residuals , fitted_logsal=modB$fitted.values, std_residuals=rstandard(modB))
+
+raw_resid_plt <- resid_df %>%  ggplot(aes(x=fitted_logsal, y=raw_residuals)) + geom_point() + ggtitle("Raw residual plot")
+std_resid_plt <- resid_df %>%  ggplot(aes(x=fitted_logsal, y=std_residuals)) + geom_point() + ggtitle("Standardized residual plot")
+raw_resid_plt
+std_resid_plt
+
+```
+
 ### Outliers, Cook, Leverage, etc.
 
 Now, we'll look at some of the highest leverage cases.
 
-```{r p6, echo = FALSE, warning = FALSE, message=FALSE}
+```{r p6, echo = FALSE, warning = FALSE, message=FALSE, fig.width=4, fig.asp=0.618}
 show_diagnostics <- function(model){
   x = model.matrix(model)
   h = x %*% solve(t(x) %*% x) %*% t(x)
@@ -390,7 +402,7 @@ show_diagnostics <- function(model){
 show_diagnostics(modB)
 ```
 
-There's an outlying case with a large leverage and Cook's Distance. The residual does not appear to be anything extraordinary, but we'll use a t-test for a mean shift to formally test if this is an outlier.
+There's an outlying case with a large leverage and Cook's Distance. The residual does not appear to be anything extraordinary, however. After digging into this data point, we see that it's Jarnell Stokes, a guy who appeared in 7 games and played 18 minutes. It does appear that he has some noisy statistics due to a small sample size from a lack of playing time. We'll use a t-test for a mean shift to formally test if this is an outlier.
 
 ```{r p7, echo = FALSE, warning = FALSE, message=FALSE}
 test_outlier_meanshift <- function(model, ind){
@@ -402,12 +414,15 @@ test_outlier_meanshift <- function(model, ind){
   return (pval)
 }
 
+outlier = data_init[which.max(cooks.distance(modB)),]
 pv = test_outlier_meanshift(modB, which.max(cooks.distance(modB)))
 cat("Outlier p-value: ", pv)
 
+outlier2 = data_init[which.max(modB$residuals),]
+
 ```
 
-This p-value is small, but not ridiculously small in the context of a dataset of 366 observations. We are unable to conclude that this point is an outlier and there is a reason to believe that the mean function for this point should be shifted.
+This p-value is small, but not ridiculously small in the context of a dataset of 366 observations. We are unable to conclude that this point is an outlier and there is a reason to believe that the mean function for this point should be shifted. There is another data point that is a bit of an outlier in terms of having the largest residual. It doesn't actually appear to be an outlier that suggests the mean function assumed by the model is incorrect, however. This player is Iman Shumpert; we'll discuss him a bit later in our conclusions section.
 
 ### Contextual Applications
 
