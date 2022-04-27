@@ -336,7 +336,6 @@ wls_resids_with_weights = data.frame(resid=wls_model$residuals , fitted_logsal=w
 ols_resid_with_weights
 ```
 
-<br/>  \
 
 ```{r p5y, echo=FALSE, message=FALSE, warning=FALSE, fig.width=4.8, fig.asp=0.618}
 wls_resids_with_weights
@@ -479,7 +478,6 @@ Any future advancement of this work should, however, consider the idea of holdin
 * GS: Log transformation
 * ORB: Log transformation  
   
-  <br />
 
 ```{r p0, echo=FALSE, warning=FALSE, message=FALSE}
 vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
@@ -491,7 +489,6 @@ grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 
 #### Figure A2: Transformation of Pos  
   
-  <br />
 
 ```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
 pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
@@ -501,7 +498,6 @@ grid.arrange(pos_box, pos_cat_box, nrow = 1)
 
 #### Output A3: Summaries of Models A, C, D, E
 
-  <br />
 
 ```{r, warning=FALSE, message=FALSE}
 summary(modA)
@@ -509,11 +505,9 @@ summary(modC)
 summary(modD)
 summary(modE)
 ```
-<<<<<<< HEAD
 
 #### Figure A4: Predictors used in selected models
 
-  <br />  \
   
 ```{r warning=F, message=F, echo=F}
 par(mfrow = c(1,1))
@@ -522,7 +516,6 @@ plot(preds, asp=TRUE, las = 2, col = c("red","green"), xlab="", ylab="", main="P
 
 #### Figure A5: Correlation Matrix
 
-  <br />  \
   
 ```{r warning=F, message=F, echo=F}
 corrplot(cor(data[sapply(data, is.numeric)]))
@@ -533,6 +526,3 @@ corrplot(cor(data[sapply(data, is.numeric)]))
 ```{r a6, warning=F, echo=F, message=F}
 show_diagnostics(modB)
 ```
-
-=======
->>>>>>> b00b23fa4a771753894abcfd6bcdbfeaad2e658a
