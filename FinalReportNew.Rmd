@@ -450,6 +450,19 @@ Our model thought Rodney Hood was the league's most underpaid player, and Iman S
 
 ## Conclusion
 
+In attempting to model the NBA player salary market during the 2015-16 season, we considered many variables and began by eliminating variables we could argue wouldn’t be helpful.  We then proposed five models through different methods of stepwise regression, some with interaction terms and some with only main effects. Through the employment of k-fold cross-validation, we decided on a best model to predict player salaries that includes an intercept and nine main effects.
+
+Probably the strictest limitation to our model is that it is only useful for the 2015-16 NBA season. As the economy, the market, the player pool, and many other factors including what assets NBA teams value in a player change, the salary prediction model is destined to change as well. However, even with this limitation, our model proposes not only a fun conversation starter for basketball fans, but also a jumping off point for future work.
+
+With a prediction model and real data, we can investigate which players the model deemed as overpaid and underpaid in 2015-16. Furthermore, the question of whether overpaying players inhibits your ability to win or whether underpaying players allows more flexibility to win can be addressed from a team perspective.
+
+Secondarily, we can predict what players from other eras would make in 2015-16 if they were dropped into the league with all the same covariates. For instance, if we duplicate one of Michael Jordan’s greatest seasons as a 2015-16 performance, we can predict what Jordan’s salary may have been. Comparing our model’s prediction to his actual salary under the consideration of inflation may support the discussion regarding how quickly and drastically NBA contracts are growing. Performing this type of analysis over a larger group of players could also provide insight to how the values of NBA teams have changed over time by investigating which predictors are more significant in different eras of basketball.
+
+Most importantly, our work provides a notion of how to develop such a model. Despite the limitation mentioned prior, one could use the methods outlined in this paper to construct a similar model for another season, with different potential covariates, or even for an entirely different sport.
+
+Any future advancement of this work should, however, consider the idea of holding out a test set until the very end of the model construction. Such a decision may have provided more validation for our model had we chosen to do so.
+
+
 \newpage
 
 ## Appendix
@@ -466,7 +479,7 @@ Our model thought Rodney Hood was the league's most underpaid player, and Iman S
 * GS: Log transformation
 * ORB: Log transformation  
   
-  <br />  \
+  <br />
 
 ```{r p0, echo=FALSE, warning=FALSE, message=FALSE}
 vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
@@ -478,7 +491,7 @@ grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 
 #### Figure A2: Transformation of Pos  
   
-  <br />  \
+  <br />
 
 ```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
 pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
@@ -488,7 +501,7 @@ grid.arrange(pos_box, pos_cat_box, nrow = 1)
 
 #### Output A3: Summaries of Models A, C, D, E
 
-  <br />  \
+  <br />
 
 ```{r, warning=FALSE, message=FALSE}
 summary(modA)
@@ -496,6 +509,7 @@ summary(modC)
 summary(modD)
 summary(modE)
 ```
+<<<<<<< HEAD
 
 #### Figure A4: Predictors used in selected models
 
@@ -520,3 +534,5 @@ corrplot(cor(data[sapply(data, is.numeric)]))
 show_diagnostics(modB)
 ```
 
+=======
+>>>>>>> b00b23fa4a771753894abcfd6bcdbfeaad2e658a
