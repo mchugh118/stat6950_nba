@@ -347,7 +347,7 @@ wls_resids_with_weights = data.frame(resid=wls_model$residuals , fitted_logsal=w
 ols_resid_with_weights
 ```
 
-<br/>
+<br/>  \
 
 ```{r p5y, echo=FALSE, message=FALSE, warning=FALSE, fig.width=5.5, fig.asp=0.618}
 wls_resids_with_weights
@@ -380,7 +380,7 @@ raw_resid_plt
 
 ```
 
-<br/>
+<br/>  \
 
 ```{r p5aa, fig.width=5, fig.asp=0.618, echo=FALSE}
 std_resid_plt
@@ -475,7 +475,7 @@ Our model thought Rodney Hood was the league's most underpaid player, and Iman S
 
 #### Figure A1: Transformation of VORP  
   
-  <br />  
+  <br />  \
 
 ```{r p0, echo=FALSE, warning=FALSE, message=FALSE}
 vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
@@ -487,7 +487,7 @@ grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 
 #### Figure A2: Transformation of Pos  
   
-  <br />  
+  <br />  \
 
 ```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
 pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
@@ -497,7 +497,7 @@ grid.arrange(pos_box, pos_cat_box, nrow = 1)
 
 #### Output A3: Summaries of Models A, C, D, E
 
-  <br />  
+  <br />  \
 
 ```{r, warning=FALSE, message=FALSE}
 summary(modA)
