@@ -121,7 +121,7 @@ Of these best models previously mentioned, we see that the model with the smalle
 
 As we continued the model building process, we wanted to make sure we were avoiding overfitting. We created an algorithm where we used the regsubsets function to identify the n best predictors for all n from 1 to a large number, and included first level interaction effects. While some of these models included interactions without the corresponding main effects, we just used this as a rough guideline. We then looked at some of the evaluation metrics for these "best n predictors" models, such as $R^2$ and MSE, on k-folds cross-validated data. 
 
-```{r px11, echo=FALSE, fig.width=6, fig.asp=.33}
+```{r px11, echo=FALSE}
 train.control <- trainControl(method = "cv", number=5)
 datax = data %>% dplyr::select(-c(Pos_cat, International, Conference))
 rsq = c()
@@ -336,7 +336,6 @@ wls_resids_with_weights = data.frame(resid=wls_model$residuals , fitted_logsal=w
 ols_resid_with_weights
 ```
 
-<br/>  \
 
 ```{r p5y, echo=FALSE, message=FALSE, warning=FALSE, fig.width=4.8, fig.asp=0.618}
 wls_resids_with_weights
@@ -360,7 +359,7 @@ In all, our model reports an $R^2$ value of 0.5871 and Adjusted $R^2$ value of 0
 
 We will also look at the residual plot again, as well as the standardized residual plot:
 
-```{r p5z, fig.width=7, fig.asp=0.5}
+```{r p5z, fig.width=7, fig.asp=0.5, echo=FALSE}
 resid_df = data.frame(raw_residuals=modB$residuals , fitted_logsal=modB$fitted.values, std_residuals=rstandard(modB))
 
 raw_resid_plt <- resid_df %>%  ggplot(aes(x=fitted_logsal, y=raw_residuals)) + geom_point() + ggtitle("Raw residual plot")
@@ -479,7 +478,6 @@ Any future advancement of this work should, however, consider the idea of holdin
 * GS: Log transformation
 * ORB: Log transformation  
   
-  <br />
 
 ```{r p0, echo=FALSE, warning=FALSE, message=FALSE}
 vorp_hist = data_init %>% ggplot(aes(x=VORP)) + geom_histogram() + ggtitle("Histogram of VORP")
@@ -491,7 +489,6 @@ grid.arrange(vorp_hist, vorp_scatter, adj_vorp_hist, adj_vorp_scatter, nrow = 2)
 
 #### Figure A2: Transformation of Pos  
   
-  <br />
 
 ```{r p2b, echo=FALSE, warning=FALSE, message=FALSE}
 pos_box = data_init %>% ggplot(aes(x = Pos, y = logsal)) + geom_boxplot() + ggtitle("log(salary) by position (unrefined)")
@@ -501,7 +498,6 @@ grid.arrange(pos_box, pos_cat_box, nrow = 1)
 
 #### Output A3: Summaries of Models A, C, D, E
 
-  <br />
 
 ```{r, warning=FALSE, message=FALSE}
 summary(modA)
@@ -512,7 +508,6 @@ summary(modE)
 
 #### Figure A4: Predictors used in selected models
 
-  \
   
 ```{r warning=F, message=F, echo=F}
 par(mfrow = c(1,1))
@@ -521,7 +516,6 @@ plot(preds, asp=TRUE, las = 2, col = c("red","green"), xlab="", ylab="", main="P
 
 #### Figure A5: Correlation Matrix
 
- \
   
 ```{r warning=F, message=F, echo=F}
 corrplot(cor(data[sapply(data, is.numeric)]))
