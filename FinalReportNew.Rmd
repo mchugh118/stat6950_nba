@@ -225,8 +225,6 @@ modE <- lm(logsal ~ Age + G + MP + X3PAr + ftr_adj + blk_adj + TOV. + ORtg + DRt
            data = data)
 ```
 
-We'll fit each of the models and explore the residual plots.
-
 ## Residual Analysis
 
 ```{r p3, echo=FALSE, warning=FALSE, message=FALSE}
@@ -359,7 +357,7 @@ In all, our model reports an $R^2$ value of 0.5871 and Adjusted $R^2$ value of 0
 
 We will also look at the residual plot again, as well as the standardized residual plot:
 
-```{r p5z, fig.width=7, fig.asp=0.5}
+```{r p5z, fig.width=7, fig.asp=0.5, echo=FALSE}
 resid_df = data.frame(raw_residuals=modB$residuals , fitted_logsal=modB$fitted.values, std_residuals=rstandard(modB))
 
 raw_resid_plt <- resid_df %>%  ggplot(aes(x=fitted_logsal, y=raw_residuals)) + geom_point() + ggtitle("Raw residual plot")
